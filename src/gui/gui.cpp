@@ -3,7 +3,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui/gui.h"
 
-GUI::GUI(CPU &cpu): cpu{cpu} {
+GUI::GUI(CPU &cpu, Bus &bus): cpu{cpu}, bus{bus} {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -59,11 +59,10 @@ GUI::~GUI() {
     SDL_Quit();
 }
 
-
 void GUI::display() {
-    char path[100];
-    handle_events();
+    std::string filePathName;
 
+    handle_events();
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -75,8 +74,8 @@ void GUI::display() {
     
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
-            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            std::cout << filePathName << std::endl;
+            filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+            bus.insert_cartridge(new Cartridge(filePathName));
         }
         ImGuiFileDialog::Instance()->Close();
     }

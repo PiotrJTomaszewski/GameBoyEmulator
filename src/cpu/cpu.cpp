@@ -33,6 +33,51 @@ CPU::~CPU() {
 }
 
 /**
+ * Sets CPU registers and helper variables to their initial values
+ */
+void CPU::restart() {
+    regPC = 0x100;
+    regSP = 0xFFFE;
+    regA = 0;
+    regBC = 0;
+    regDE = 0;
+    regHL = 0;
+    flags_reg.value = 0x00;
+    is_halted = false;
+    interrupts_enabled = false;
+    intr_state_change = NO_CHANGE;
+}
+
+/**
+ * Executes a signle machine cylce on the CPU
+ * Returns the number of clock cycles this step took
+ */
+// TODO: Update
+// TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
+int CPU::next_cycle() {
+    if (!is_halted) {
+        intr_change_t should_interrupts_change = intr_state_change;
+        if (interrupts_enabled && interrupt_requested) {
+            int cycles;
+            // int cycles = cpu_exec_op();
+            if (should_interrupts_change != NO_CHANGE) {
+                interrupts_enabled = (should_interrupts_change == ENABLE);
+                intr_state_change = NO_CHANGE;
+            }
+            return cycles;
+        } else {
+            return cpu_exec_op(get_next_prog_byte());
+        }
+    } else {
+        /* The processor is usually emulated in batches
+        * so to avoid being stuck in an infinite loop
+        * I've assumed that halted processor executes NOPs 
+        */
+        return 4;
+    }
+}
+
+/**
  * Adds two 8bit values with carry and sets the flags accordingly
  * Affected flags: Z, N, H, C
  * Affected registers: None
@@ -1844,50 +1889,4 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
     }
     return operation_cycles;
-}
-
-
-/**
- * Sets CPU registers and helper variables to their initial values
- */
-void CPU::restart() {
-    regPC = 0x100;
-    regSP = 0xFFFE;
-    regA = 0;
-    regBC = 0;
-    regDE = 0;
-    regHL = 0;
-    flags_reg.value = 0x00;
-    is_halted = false;
-    interrupts_enabled = false;
-    intr_state_change = NO_CHANGE;
-}
-
-/**
- * Executes a signle machine cylce on the CPU
- * Returns the number of clock cycles this step took
- */
-// TODO: Update
-// TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
-int CPU::exec_cycle() {
-    if (!is_halted) {
-        intr_change_t should_interrupts_change = intr_state_change;
-        if (interrupts_enabled && interrupt_requested) {
-            int cycles;
-            // int cycles = cpu_exec_op();
-            if (should_interrupts_change != NO_CHANGE) {
-                interrupts_enabled = (should_interrupts_change == ENABLE);
-                intr_state_change = NO_CHANGE;
-            }
-            return cycles;
-        } else {
-            return cpu_exec_op(get_next_prog_byte());
-        }
-    } else {
-        /* The processor is usually emulated in batches
-        * so to avoid being stuck in an infinite loop
-        * I've assumed that halted processor executes NOPs 
-        */
-        return 4;
-    }
 }

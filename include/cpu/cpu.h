@@ -2,6 +2,12 @@
 #include "cpu/regs.h"
 #include "bus.h"
 
+enum intr_change_t {
+    NO_CHANGE,
+    ENABLE,
+    DISABLE
+};
+
 class CPU {
 public:
     CPU(Bus &bus);
@@ -19,12 +25,9 @@ public:
     uint16_t get_regPC() {return _regPC.value;};
     uint16_t get_regSP() {return _regSP.value;};
     flags_reg_t get_flags_reg() {return flags_reg;}
+    void restart();
+    int next_cycle();
 private:
-    enum intr_change_t {
-        NO_CHANGE,
-        ENABLE,
-        DISABLE
-    };
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;
@@ -61,6 +64,4 @@ private:
     int cond_call(bool condition);
     inline void call_addr(uint16_t addr);
     int cpu_exec_op(uint8_t opcode);
-    void restart();
-    int exec_cycle();
 };

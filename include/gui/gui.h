@@ -7,15 +7,17 @@
 #include "imgui_memory_editor.h"
 
 #include "cpu/cpu.h"
+#include "bus.h"
 
 class GUI {
 public:
-    GUI(CPU &cpu);
+    GUI(CPU &cpu, Bus &bus);
     ~GUI();
     void display();
     bool get_should_close();
 private:
     CPU &cpu;
+    Bus &bus;
     SDL_Window *window;
     SDL_GLContext gl_context;
     ImGuiIO io;
