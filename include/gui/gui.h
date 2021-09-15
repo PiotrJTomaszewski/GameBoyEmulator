@@ -23,5 +23,6 @@ private:
     const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool should_close;
     void handle_events();
+    void display_main_menu();
     void display_cpu();
 };

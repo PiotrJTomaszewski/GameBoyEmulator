@@ -69,6 +69,7 @@ void GUI::display() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
+    display_main_menu();
     display_cpu();
     // mem_edit.DrawWindow("Memory", &mem, 10000);
     
@@ -102,6 +103,18 @@ void GUI::handle_events() {
             should_close = true;
         if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
             should_close = true;
+    }
+}
+
+void GUI::display_main_menu() {
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("Cartridge")) {
+            if (ImGui::MenuItem("Open..", "Ctrl+O")) {
+                ImGuiFileDialog::Instance()->OpenDialog("ChCartKey", "Choose a Cartridge file", ".gb", ".");
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
     }
 }
 
