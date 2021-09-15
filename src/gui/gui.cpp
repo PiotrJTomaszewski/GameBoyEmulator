@@ -1,3 +1,6 @@
+#include <string>
+#include <iostream>
+#include "ImGuiFileDialog.h"
 #include "gui/gui.h"
 
 GUI::GUI(CPU &cpu): cpu{cpu} {
@@ -58,6 +61,7 @@ GUI::~GUI() {
 
 
 void GUI::display() {
+    char path[100];
     handle_events();
 
     // Start the Dear ImGui frame
@@ -68,6 +72,14 @@ void GUI::display() {
     display_cpu();
     // mem_edit.DrawWindow("Memory", &mem, 10000);
     
+    if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
+        if (ImGuiFileDialog::Instance()->IsOk()) {
+            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+            std::cout << filePathName << std::endl;
+        }
+        ImGuiFileDialog::Instance()->Close();
+    }
+
     // Rendering
     ImGui::Render();
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
