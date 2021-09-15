@@ -20,8 +20,47 @@ public:
     uint16_t get_regSP() {return _regSP.value;};
     flags_reg_t get_flags_reg() {return flags_reg;}
 private:
+    enum intr_change_t {
+        NO_CHANGE,
+        ENABLE,
+        DISABLE
+    };
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;
     Bus &bus;
+    
+    intr_change_t intr_state_change;  // Should the interrupts be enabled/disabled after an instruction is executed
+    bool interrupts_enabled;
+    bool interrupt_requested;
+    bool is_halted;
+
+    uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
+    uint16_t add16bit_with_flags(uint16_t val1, uint16_t val2);
+    uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow);
+    uint8_t inc8bit_with_flags(uint8_t val);
+    uint8_t dec8bit_with_flags(uint8_t val);
+    uint8_t and8bit_with_flags(uint8_t val1, uint8_t val2);
+    uint8_t or8bit_with_flags(uint8_t val1, uint8_t val2);
+    uint8_t xor8bit_with_flags(uint8_t val1, uint8_t val2);
+    uint8_t swap_nibbles_with_flags(uint8_t val);
+    uint8_t rotate_left_with_flags(uint8_t val);
+    uint8_t rotate_left_carry_with_flags(uint8_t val);
+    uint8_t rotate_right_with_flags(uint8_t val);
+    uint8_t rotate_right_carry_with_flags(uint8_t val);
+    uint8_t shift_left_with_flags(uint8_t val);
+    uint8_t shift_right_leave_msb_with_flags(uint8_t val);
+    uint8_t shift_right_with_flags(uint8_t val);
+    inline void test_bit_with_flags(int bit_no, uint8_t val);
+    inline void stack_push(uint8_t value);
+    inline uint8_t stack_pop();
+    inline uint8_t get_next_prog_byte();
+    uint16_t get_next_2_prog_bytes();
+    inline int cond_return(bool condition);
+    inline void cond_jump(bool condition);
+    int cond_call(bool condition);
+    inline void call_addr(uint16_t addr);
+    int cpu_exec_op(uint8_t opcode);
+    void restart();
+    int exec_cycle();
 };
