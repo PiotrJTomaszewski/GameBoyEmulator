@@ -24,8 +24,7 @@
 #define regSP_lower _regSP.pair.lower
 
 CPU::CPU(Bus &bus): bus{bus} {
-    intr_state_change = NO_CHANGE;
-    is_halted = false;
+    restart();
 }
 
 CPU::~CPU() {
@@ -38,14 +37,15 @@ CPU::~CPU() {
 void CPU::restart() {
     regPC = 0x100;
     regSP = 0xFFFE;
-    regA = 0;
-    regBC = 0;
-    regDE = 0;
-    regHL = 0;
+    regA = 0x01;
+    regBC = 0x0013;
+    regDE = 0x00D8;
+    regHL = 0x014D;
     flags_reg.value = 0x00;
     is_halted = false;
     interrupts_enabled = false;
     intr_state_change = NO_CHANGE;
+    interrupt_requested = false;
 }
 
 /**
@@ -317,7 +317,7 @@ uint8_t CPU::shift_right_with_flags(uint8_t val) {
  * Affected registers: None
  */
 inline void CPU::test_bit_with_flags(int bit_no, uint8_t val) {
-    flags_reg.flags.Z = (val >> bit_no);
+    flags_reg.flags.Z = ~(val >> bit_no);
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 1;
 }
@@ -534,7 +534,10 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x18: // JR n; 2 bytes; 8 cycles
-            regPC = (regPC + (int8_t)get_next_prog_byte()) & 0xFFFF;
+            {
+                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                regPC = (regPC + offset) & 0xFFFF;
+            }
             operation_cycles = 8;
             break;
         case 0x19: // ADD HL,DE; 1 byte; 8 cycles; N,H,C flags
@@ -566,8 +569,11 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x20: // JR NZ,n; 2 bytes; 8 cycles
-            if (!flags_reg.flags.Z) {
-                regPC = (regPC + (int8_t)get_next_prog_byte()) & 0xFFFF;
+            {
+                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                if (flags_reg.flags.Z == 0) {
+                    regPC = (regPC + offset) & 0xFFFF;
+                }
             }
             operation_cycles = 8;
             break;
@@ -617,8 +623,11 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 4;
             // break;
         case 0x28: // JR Z,n; 2 bytes; 8 cycles
-            if (flags_reg.flags.Z) {
-                regPC = (regPC + (int8_t)get_next_prog_byte()) & 0xFFFF;
+            {
+                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                if (flags_reg.flags.Z == 1) {
+                    regPC = (regPC + offset) & 0xFFFF;
+                }
             }
             operation_cycles = 8;
             break;
@@ -653,8 +662,11 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x30: // JR NC,n; 2 bytes; 8 cycles
-            if (!flags_reg.flags.C) {
-                regPC = (regPC + (int8_t)get_next_prog_byte()) & 0xFFFF;
+            {
+                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                if (flags_reg.flags.C == 0) {
+                    regPC = (regPC + offset) & 0xFFFF;
+                }
             }
             operation_cycles = 8;
             break;
@@ -690,8 +702,11 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x38: // JR C,n; 2 bytes; 8 cycles
-            if (flags_reg.flags.C) {
-                regPC = (regPC + (int8_t)get_next_prog_byte()) & 0xFFFF;
+            {
+                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                if (flags_reg.flags.C == 1) {
+                    regPC = (regPC + offset) & 0xFFFF;
+                }
             }
             operation_cycles = 8;
             break;
@@ -1275,7 +1290,9 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 12;
             break;
         case 0xCB: // Extended instructions
-            switch (get_next_prog_byte()) {
+        {
+            uint8_t op = get_next_prog_byte(); // TODO: Cleanup
+            switch (op) {
                 case 0x00: // RLC B; 2 bytes; 8 cycles; Z,N,H,C flags
                     regB = rotate_left_with_flags(regB);
                     operation_cycles = 8;
@@ -1532,105 +1549,53 @@ int CPU::cpu_exec_op(uint8_t opcode) {
                     regA = shift_right_with_flags(regA);
                     operation_cycles = 8;
                     break;
-                case 0x40: // BIT b,B; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x41: // BIT b,C; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x42: // BIT b,D; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x43: // BIT b,E; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x44: // BIT b,H; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x45: // BIT b,L; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x46: // BIT b,(HL); 3 bytes; 16 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), bus.read(regHL));
-                    operation_cycles = 16;
-                    break;
-                case 0x47: // BIT b,A; 3 bytes; 8 cycles; Z,N,H flags
-                    test_bit_with_flags(get_next_prog_byte(), regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x80: // RES b,B; 3 bytes; 8 cycles
-                    regB = regB & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x81: // RES b,C; 3 bytes; 8 cycles
-                    regC = regC & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x82: // RES b,D; 3 bytes; 8 cycles
-                    regD = regD & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x83: // RES b,E; 3 bytes; 8 cycles
-                    regE = regE & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x84: // RES b,H; 3 bytes; 8 cycles
-                    regH = regH & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x85: // RES b,L; 3 bytes; 8 cycles
-                    regL = regL & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0x86: // RES b,(HL); 3 bytes; 16 cycles
-                    bus.write(regHL, bus.read(regHL) & (~(1 << get_next_prog_byte())));
-                    operation_cycles = 16;
-                    break;
-                case 0x87: // RES b,A; 3 bytes; 8 cycles
-                    regA = regA & (~(1 << get_next_prog_byte()));
-                    operation_cycles = 8;
-                    break;
-                case 0xC0: // SET b,B; 3 bytes; 8 cycles
-                    regB = regB | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC1: // SET b,C; 3 bytes; 8 cycles
-                    regC = regC | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC2: // SET b,D; 3 bytes; 8 cycles
-                    regD = regD | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC3: // SET b,E; 3 bytes; 8 cycles
-                    regE = regE | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC4: // SET b,H; 3 bytes; 8 cycles
-                    regH = regH | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC5: // SET b,L; 3 bytes; 8 cycles
-                    regL = regL | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                case 0xC6: // SET b,(HL); 3 bytes; 16 cycles
-                    bus.write(regHL, bus.read(regHL) | (1 << get_next_prog_byte()));
-                    operation_cycles = 16;
-                    break;
-                case 0xC7: // SET b,A; 3 bytes; 8 cycles
-                    regA = regA | (1 << get_next_prog_byte());
-                    operation_cycles = 8;
-                    break;
-                default:
+                default: // BIT, SET, RES operations // TODO: Cleanup
+                {
+                    int bit_no = (op & 0b00111000) >> 3;
+                    int reg_id = op & 0b00000111;
+                    uint8_t *reg_lookup[] = {&regB, &regC, &regD, &regE, &regH, &regL};
+                    switch((op & 0b11000000) >> 6) {
+                        case 0x01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
+                            if (reg_id == 7) {
+                                test_bit_with_flags(bit_no, regA);
+                                operation_cycles = 8;
+                            } else if (reg_id == 6) {
+                                test_bit_with_flags(bit_no, bus.read(regHL));
+                                operation_cycles = 16;
+                            } else {
+                                test_bit_with_flags(bit_no, *reg_lookup[reg_id]);
+                                operation_cycles = 8;
+                            }
+                            break;
+                        case 0x10: // RES b,r; 2 bytes; 8/16 cycles
+                            if (reg_id == 7) {
+                                regA = regA & (~(1 << get_next_prog_byte()));
+                                operation_cycles = 8;
+                            } else if (reg_id == 6) {
+                                bus.write(regHL, bus.read(regHL) & (~(1 << get_next_prog_byte())));
+                                operation_cycles = 16;
+                            } else {
+                                *reg_lookup[reg_id] = *reg_lookup[reg_id] & (~(1 << get_next_prog_byte()));
+                                operation_cycles = 8;
+                            }
+                            break;
+                        case 0x11: // SET b,r; 2 bytes; 8/16 cycles
+                            if (reg_id == 7) {
+                                regA = regA | (1 << get_next_prog_byte());
+                                operation_cycles = 8;
+                            } else if (reg_id == 6) {
+                                bus.write(regHL, bus.read(regHL) | (1 << get_next_prog_byte()));
+                                operation_cycles = 16;
+                            } else {
+                                *reg_lookup[reg_id] = *reg_lookup[reg_id] | (1 << get_next_prog_byte());
+                                operation_cycles = 8;
+                            }
+                            break;
+                    }
+                }
                     break;
             }
+        }
             break;
         case 0xCC: // CALL Z,adr; 3 bytes; 12 cycles
             operation_cycles = cond_call(flags_reg.flags.Z);
