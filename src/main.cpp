@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
     Bus bus(io);
     CPU cpu(bus, io);
     GUI gui(cpu, bus);
-    bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameboyEmulator/roms/test_roms/blargg/cpu_instrs/individual/03-op sp,hl.gb"));
+    // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameboyEmulator/roms/test_roms/blargg/cpu_instrs/individual/03-op sp,hl.gb"));
     bool is_cart = bus.get_is_cart_inserted();
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
                 std::this_thread::sleep_for(std::chrono::microseconds(step_duration_micros) - duration);
             }
             // TODO: Remove later
-            io.interrupts.signal_vblank();
+            io.interrupts.signal(VBLANK);
         }
         gui.display();
     }

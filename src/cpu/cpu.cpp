@@ -61,6 +61,8 @@ int CPU::next_cycle() {
         if (ready_interrupt != NO_INTERRUPT) {
             cycles += 5; // Preparation for interrupt execution takes 5 cycles
             call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
+            io.interrupts.all_interrupts_disable();
+            io.interrupts.mark_used(ready_interrupt);
         }
         cycles += cpu_exec_op(get_next_prog_byte());
         io.interrupts.intrs_update_state(old_intrs_should_be_enabled);

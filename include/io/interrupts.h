@@ -37,11 +37,8 @@ public:
     void all_interrupts_disable();
     void intrs_update_state(bool state_before_last_opcode);
     bool get_intrs_should_be_enabled();
-    void signal_vblank();
-    void signal_lcd_stat();
-    void signal_timer();
-    void signal_serial();
-    void signal_joypad();
+    void signal(intr_type_t type);
+    void mark_used(intr_type_t type);
 
 private:
     intr_reg_t interrupt_flag;

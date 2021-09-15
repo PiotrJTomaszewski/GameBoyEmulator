@@ -42,22 +42,46 @@ bool Interrupts::get_intrs_should_be_enabled() {
     return intrs_should_be_enabled;
 }
 
-void Interrupts::signal_vblank() {
-    interrupt_flag.flags.vblank = 1;
+void Interrupts::signal(intr_type_t type) {
+    switch (type) {
+        case VBLANK:
+            interrupt_flag.flags.vblank = 1;
+            break;
+        case LCD_STAT:
+            interrupt_flag.flags.lcd_stat = 1;
+            break;
+        case TIMER:
+            interrupt_flag.flags.timer = 1;
+            break;
+        case SERIAL:
+            interrupt_flag.flags.serial = 1;
+            break;
+        case JOYPAD:
+            interrupt_flag.flags.joypad = 1;
+            break;
+        default:
+            break;
+    }
 }
 
-void Interrupts::signal_lcd_stat() {
-    interrupt_flag.flags.lcd_stat = 1;
-}
-
-void Interrupts::signal_timer() {
-    interrupt_flag.flags.timer = 1;
-}
-
-void Interrupts::signal_serial() {
-    interrupt_flag.flags.serial = 1;
-}
-
-void Interrupts::signal_joypad() {
-    interrupt_flag.flags.joypad = 1;
+void Interrupts::mark_used(intr_type_t type) {
+        switch (type) {
+            case VBLANK:
+                interrupt_flag.flags.vblank = 0;
+                break;
+            case LCD_STAT:
+                interrupt_flag.flags.lcd_stat = 0;
+                break;
+            case TIMER:
+                interrupt_flag.flags.timer = 0;
+                break;
+            case SERIAL:
+                interrupt_flag.flags.serial = 0;
+                break;
+            case JOYPAD:
+                interrupt_flag.flags.joypad = 0;
+                break;
+            default:
+                break;
+        }
 }
