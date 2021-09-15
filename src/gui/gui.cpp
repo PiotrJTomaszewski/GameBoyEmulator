@@ -1,0 +1,157 @@
+#include "gui/gui.h"
+
+GUI::GUI(CPU &cpu): cpu{cpu} {
+    // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
+    // Setup SDL
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
+    {
+        printf("Error: %s\n", SDL_GetError());
+        // TODO: Throw exception
+    }
+
+    // GL 3.0 + GLSL 130
+    const char* glsl_version = "#version 130";
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    // Create window with graphics context
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    window = SDL_CreateWindow("GameBoy Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    gl_context = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, gl_context);
+    SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    // ImGui::StyleColorsDark();
+    ImGui::StyleColorsClassic();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
+    ImGui_ImplOpenGL3_Init(glsl_version);
+    
+    should_close = false;
+}
+
+GUI::~GUI() {
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_GL_DeleteContext(gl_context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+
+void GUI::display() {
+    handle_events();
+
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    display_cpu();
+    
+    // Rendering
+    ImGui::Render();
+    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    SDL_GL_SwapWindow(window);
+}
+
+bool GUI::get_should_close() {
+    return should_close;
+}
+
+void GUI::handle_events() {
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        if (event.type == SDL_QUIT)
+            should_close = true;
+        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+            should_close = true;
+    }
+}
+
+void GUI::display_cpu() {
+    flags_reg_t cpu_flags_reg = cpu.get_flags_reg();
+
+    ImGui::Begin("CPU", NULL);
+    // Registers
+    ImGui::TextColored(ImVec4(1,1,0,1), "Registers");
+    ImGui::BeginTable("#cpu_registers_table", 3);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("A: 0x%02X", cpu.get_regA());
+    ImGui::TableNextColumn();
+    ImGui::Text("F: 0x%02X", cpu_flags_reg.value);
+    ImGui::TableNextColumn();
+    ImGui::Text("AF: 0x%04X", (cpu.get_regA() << 8) | cpu_flags_reg.value);
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("B: 0x%02X", cpu.get_regB());
+    ImGui::TableNextColumn();
+    ImGui::Text("C: 0x%02X", cpu.get_regC());
+    ImGui::TableNextColumn();
+    ImGui::Text("BC: 0x%04X", cpu.get_regBC());
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("D: 0x%02X", cpu.get_regD());
+    ImGui::TableNextColumn();
+    ImGui::Text("E: 0x%02X", cpu.get_regE());
+    ImGui::TableNextColumn();
+    ImGui::Text("DE: 0x%04X", cpu.get_regDE());
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("H: 0x%02X", cpu.get_regH());
+    ImGui::TableNextColumn();
+    ImGui::Text("L: 0x%02X", cpu.get_regL());
+    ImGui::TableNextColumn();
+    ImGui::Text("HL: 0x%04X", cpu.get_regHL());
+
+    ImGui::EndTable();
+
+    // Flags
+    ImGui::BeginTable("#flags_and_regs_table", 2);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("PC: 0x%04X", cpu.get_regPC());
+    ImGui::TableNextColumn();
+    ImGui::Text("SP: 0x%04X", cpu.get_regSP());
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextColored(ImVec4(1,1,0,1), "Flags");
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("Z: %d", cpu_flags_reg.flags.Z);
+    ImGui::TableNextColumn();
+    ImGui::Text("N: %d", cpu_flags_reg.flags.N);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text("H: %d", cpu_flags_reg.flags.H);
+    ImGui::TableNextColumn();
+    ImGui::Text("C: %d", cpu_flags_reg.flags.C);
+    ImGui::EndTable();
+    ImGui::End();
+}

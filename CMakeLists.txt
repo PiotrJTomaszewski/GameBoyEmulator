@@ -14,7 +14,7 @@ include_directories(
     ${IMGUI_INCLUDE_DIR}
     )
 
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB_RECURSE SOURCES "src/*.cpp")
 add_executable(GameBoyEmu ${SOURCES})
 target_link_libraries(GameBoyEmu
     ${OPENGL_LIBRARIES}
