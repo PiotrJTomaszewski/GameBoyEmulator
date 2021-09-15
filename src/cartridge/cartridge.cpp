@@ -18,6 +18,10 @@ Cartridge::~Cartridge() {
     delete[] data;
 }
 
+void Cartridge::write(uint16_t address, uint8_t value) {
+    
+}
+
 uint8_t Cartridge::read(uint16_t address) {
     return data[address];
 }

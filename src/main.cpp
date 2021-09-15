@@ -2,10 +2,12 @@
 #include "cpu/cpu.h"
 #include "gui/gui.h"
 #include "cartridge/cartridge.h"
+#include "io/io.h"
 
 int main(int argc, char *argv[]) {
-    Bus bus;
-    CPU cpu(bus);
+    IO io;
+    Bus bus(io);
+    CPU cpu(bus, io);
     GUI gui(cpu, bus);
     bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameboyEmulator/roms/test_roms/blargg/cpu_instrs/individual/03-op sp,hl.gb"));
     bool is_cart = bus.get_is_cart_inserted();

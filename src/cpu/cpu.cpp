@@ -23,7 +23,9 @@
 #define regSP_higher _regSP.pair.higher
 #define regSP_lower _regSP.pair.lower
 
-CPU::CPU(Bus &bus): bus{bus} {
+uint16_t INTERRUPT_PC_LOOKUP[] = {0x40, 0x48, 0x50, 0x58, 0x60};
+
+CPU::CPU(Bus &bus, IO &io): bus{bus}, io{io} {
     restart();
 }
 
@@ -43,9 +45,6 @@ void CPU::restart() {
     regHL = 0x014D;
     flags_reg.value = 0x00;
     is_halted = false;
-    interrupts_enabled = false;
-    intr_state_change = NO_CHANGE;
-    interrupt_requested = false;
 }
 
 /**
@@ -55,26 +54,24 @@ void CPU::restart() {
 // TODO: Update
 // TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
 int CPU::next_cycle() {
+    int cycles;
     if (!is_halted) {
-        intr_change_t should_interrupts_change = intr_state_change;
-        if (interrupts_enabled && interrupt_requested) {
-            int cycles;
-            // int cycles = cpu_exec_op();
-            if (should_interrupts_change != NO_CHANGE) {
-                interrupts_enabled = (should_interrupts_change == ENABLE);
-                intr_state_change = NO_CHANGE;
-            }
-            return cycles;
-        } else {
-            return cpu_exec_op(get_next_prog_byte());
+        bool old_intrs_should_be_enabled = io.interrupts.get_intrs_should_be_enabled();
+        intr_type_t ready_interrupt = io.interrupts.get_ready_interrupt();
+        if (ready_interrupt != NO_INTERRUPT) {
+            cycles += 5; // Preparation for interrupt execution takes 5 cycles
+            call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
         }
+        cycles += cpu_exec_op(get_next_prog_byte());
+        io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
     } else {
         /* The processor is usually emulated in batches
         * so to avoid being stuck in an infinite loop
         * I've assumed that halted processor executes NOPs 
         */
-        return 4;
+        cycles = 4;
     }
+    return cycles;
 }
 
 /**
@@ -412,7 +409,7 @@ int CPU::cond_call(bool condition) {
 }
 
 /**
- * Sets the new PC value (subroutine call)
+ * Sets the new PC value and pushes PC on the stack (subroutine call)
  * Affected flags: None
  * Affected registers: PC, SP
  */
@@ -1656,7 +1653,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         case 0xD9: // RETI; 1 byte; 8 cycles
             regPC_lower = stack_pop();
             regPC_higher = stack_pop();
-            interrupts_enabled = true;
+            io.interrupts.all_interrupts_enable();
             operation_cycles = 8;
             break;
         case 0xDA: // JP C,adr; 3 bytes; 12 cycles
@@ -1791,7 +1788,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 8;
             break;
         case 0xF3: // DI; 1 byte; 4 cycles
-            intr_state_change = DISABLE;
+            io.interrupts.all_interrupts_disable();
             operation_cycles = 4;
             break;
         // // TODO: To update
@@ -1825,7 +1822,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
-            intr_state_change = ENABLE;
+            io.interrupts.order_all_intrs_enable();
             operation_cycles = 4;
             break;
         // // TODO: To update

@@ -1,16 +1,11 @@
 #pragma once
 #include "cpu/regs.h"
 #include "bus.h"
-
-enum intr_change_t {
-    NO_CHANGE,
-    ENABLE,
-    DISABLE
-};
+#include "io/io.h"
 
 class CPU {
 public:
-    CPU(Bus &bus);
+    CPU(Bus &bus, IO &io);
     ~CPU();
     uint8_t get_regA() {return regA;};
     uint8_t get_regB() {return _regBC.pair.higher;};
@@ -32,10 +27,7 @@ private:
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;
     Bus &bus;
-    
-    intr_change_t intr_state_change;  // Should the interrupts be enabled/disabled after an instruction is executed
-    bool interrupts_enabled;
-    bool interrupt_requested;
+    IO &io;
     bool is_halted;
 
     uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
