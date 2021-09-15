@@ -3,13 +3,15 @@
 
 Cartridge::Cartridge(std::string path) {
     int file_size;
-    std::ifstream cart(path, std::ios::binary);
-    size = static_cast<int>(cart.tellg());
-    cart.seekg(0, std::ios::end);
-    size = static_cast<int>(cart.tellg()) - size;
+    std::ifstream cart_file(path, std::ios::binary);
+    size = static_cast<int>(cart_file.tellg());
+    cart_file.seekg(0, std::ios::end);
+    size = static_cast<int>(cart_file.tellg()) - size;
 
-    cart.seekg(0, std::ios::beg);
+    cart_file.seekg(0, std::ios::beg);
     data = new uint8_t[size];
+    cart_file.read((char *)(data), size);
+    cart_file.close();
 }
 
 Cartridge::~Cartridge() {

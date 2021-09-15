@@ -1,8 +1,10 @@
 #include "bus.h"
 #include <iostream>
+#include <cstring>
 
 Bus::Bus() {
     is_cart_inserted = false;
+    memset(tmp_mem, 0, 0xFFFF+1);
 }
 
 Bus::~Bus() {
@@ -18,6 +20,8 @@ uint8_t Bus::read(uint16_t address) {
     uint8_t value = 0;
     if (address >= 0x0000 && address <= 0x7FFF) {
         value = cartridge.get()->read(address);
+    } else {
+        value = tmp_mem[address];
     }
     // std::cout << "Read 0x" << std::hex << static_cast<int>(address) << " -> 0x" << static_cast<int>(value) << std::endl;
     return value;
