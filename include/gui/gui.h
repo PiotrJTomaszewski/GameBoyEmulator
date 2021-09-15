@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_memory_editor.h"
 
 #include "cpu/cpu.h"
 
@@ -18,6 +19,7 @@ private:
     SDL_Window *window;
     SDL_GLContext gl_context;
     ImGuiIO io;
+    MemoryEditor mem_edit;
     const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool should_close;
     void handle_events();

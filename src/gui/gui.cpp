@@ -42,6 +42,7 @@ GUI::GUI(CPU &cpu): cpu{cpu} {
     ImGui_ImplOpenGL3_Init(glsl_version);
     
     should_close = false;
+    mem_edit.ReadOnly = true;
 }
 
 GUI::~GUI() {
@@ -65,6 +66,7 @@ void GUI::display() {
     ImGui::NewFrame();
 
     display_cpu();
+    // mem_edit.DrawWindow("Memory", &mem, 10000);
     
     // Rendering
     ImGui::Render();

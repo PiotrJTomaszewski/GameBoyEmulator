@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(
     include
+    lib/imgui_club/imgui_memory_editor
     ${OPENGL_INCLUDE_DIR}
     ${SDL2_INCLUDE_DIR}
     ${IMGUI_INCLUDE_DIR}
