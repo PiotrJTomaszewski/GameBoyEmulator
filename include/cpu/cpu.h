@@ -22,6 +22,7 @@ public:
     flags_reg_t get_flags_reg() {return flags_reg;}
     void restart();
     int next_cycle();
+    const long get_clock_speed_Hz();
 private:
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
@@ -29,6 +30,7 @@ private:
     Bus &bus;
     IO &io;
     bool is_halted;
+    const long CLOCK_SPEED_HZ = 4194304;
 
     uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
     uint16_t add16bit_with_flags(uint16_t val1, uint16_t val2);

@@ -74,6 +74,10 @@ int CPU::next_cycle() {
     return cycles;
 }
 
+const long CPU::get_clock_speed_Hz() {
+    return CLOCK_SPEED_HZ;
+}
+
 /**
  * Adds two 8bit values with carry and sets the flags accordingly
  * Affected flags: Z, N, H, C
