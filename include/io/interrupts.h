@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-struct intr_reg_t {
+struct __attribute__((packed)) intr_reg_t {
     uint8_t value;
     struct FLAGS {
         int vblank: 1;
