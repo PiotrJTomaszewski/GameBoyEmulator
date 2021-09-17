@@ -13,6 +13,8 @@ void IO::write(uint16_t address, uint8_t value) {
         interrupts.interrupt_flag.value = value;
     } else if (address == 0xFFFF) { // Interrupt Enable
         interrupts.interrupt_enable.value = value;
+    } else {
+        data[address-0xFF00];
     }
 }
 
@@ -22,6 +24,8 @@ uint8_t IO::read(uint16_t address) {
         value = interrupts.interrupt_flag.value;
     } else if (address == 0xFFFF) { // Interrupt Enable
         value = interrupts.interrupt_enable.value;
+    } else {
+        value = data[address-0xFF00];
     }
     return value;
 }

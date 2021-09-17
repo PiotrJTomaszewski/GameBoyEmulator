@@ -5,6 +5,7 @@
 #include "io/io.h"
 
 class Bus {
+    friend class GUI; // TODO: Remove?
 public:
     Bus(IO &io);
     ~Bus();

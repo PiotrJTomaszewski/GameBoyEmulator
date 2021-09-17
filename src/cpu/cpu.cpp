@@ -54,7 +54,7 @@ void CPU::restart() {
 // TODO: Update
 // TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
 int CPU::next_cycle() {
-    int cycles;
+    int cycles = 0;
     if (!is_halted) {
         bool old_intrs_should_be_enabled = io.interrupts.get_intrs_should_be_enabled();
         intr_type_t ready_interrupt = io.interrupts.get_ready_interrupt();
@@ -1846,7 +1846,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 17;
         //     break;
         case 0xFE: // CMP n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sub8bit_with_flags(regA, get_next_prog_byte(), 0);
+            sub8bit_with_flags(regA, get_next_prog_byte(), 0); // TODO: Check what's wrong with H flag
             operation_cycles = 8;
             break;
         case 0xFF: // RST 38H; 1 byte; 32 cycles

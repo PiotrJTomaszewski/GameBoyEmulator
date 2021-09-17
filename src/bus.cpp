@@ -1,9 +1,11 @@
 #include "bus.h"
 #include <iostream>
+#include <fstream>
 #include <cstring>
 
 Bus::Bus(IO &io): io{io} {
     is_cart_inserted = false;
+    // TODO: Remove
     memset(tmp_mem, 0, 0xFFFF+1);
 }
 
@@ -12,7 +14,7 @@ Bus::~Bus() {
 }
 
 ReadWriteInterface *Bus::get_mem_access_handler(uint16_t address) {
-    if (address >= 0x0000 && address <= 0x7FFF) { // Cartridge
+    if (address <= 0x7FFF) { // Cartridge
         return cartridge.get();
     } else if ((address >= 0xFF00 && address <= 0xFF7F) || address == 0xFFFF) { // IO Registers
         return &io;
@@ -56,4 +58,16 @@ void Bus::remove_cartridge() {
 
 bool Bus::get_is_cart_inserted() {
     return is_cart_inserted;
+}
+
+void Bus::tmp_dump() {
+    std::fstream file;
+    file.open("mem.bin", std::ios::out|std::ios::binary);
+    file.write((char *)tmp_mem, 0xFFFF+1);
+}
+
+void Bus::tmp_load() {
+    std::fstream file;
+    file.open("mem.bin", std::ios::in|std::ios::binary);
+    file.read((char *)tmp_mem, 0xFFFF+1);
 }

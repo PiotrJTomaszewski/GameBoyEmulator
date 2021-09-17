@@ -8,23 +8,27 @@
 
 #include "cpu/cpu.h"
 #include "bus.h"
+#include "io/io.h"
 
 class GUI {
 public:
-    GUI(CPU &cpu, Bus &bus);
+    GUI(CPU &cpu, Bus &bus, IO &io);
     ~GUI();
     void display();
     bool get_should_close();
 private:
     CPU &cpu;
     Bus &bus;
+    IO &io;
     SDL_Window *window;
     SDL_GLContext gl_context;
-    ImGuiIO io;
+    SDL_Renderer *renderer;
+    ImGuiIO imgui_io;
     MemoryEditor mem_edit;
     const ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     bool should_close;
     void handle_events();
     void display_main_menu();
     void display_cpu();
+    void display_tile_map();
 };

@@ -3,7 +3,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui/gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus): cpu{cpu}, bus{bus} {
+GUI::GUI(CPU &cpu, Bus &bus, IO &io): cpu{cpu}, bus{bus}, io{io} {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -32,7 +32,7 @@ GUI::GUI(CPU &cpu, Bus &bus): cpu{cpu}, bus{bus} {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    io = ImGui::GetIO(); (void)io;
+    imgui_io = ImGui::GetIO(); (void)imgui_io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
@@ -46,6 +46,19 @@ GUI::GUI(CPU &cpu, Bus &bus): cpu{cpu}, bus{bus} {
     
     should_close = false;
     mem_edit.ReadOnly = true;
+
+    // https://github.com/ocornut/imgui/issues/1116#issuecomment-316726564
+    int oglIdx = -1;
+    int nRD = SDL_GetNumRenderDrivers();
+    for(int i=0; i<nRD; i++) {
+        SDL_RendererInfo info;
+        if(!SDL_GetRenderDriverInfo(i, &info)) {
+            if(!strcmp(info.name, "opengl")) {
+                oglIdx = i;
+            }
+        }
+    }
+    renderer = SDL_CreateRenderer(window, oglIdx, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC); 
 }
 
 GUI::~GUI() {
@@ -70,7 +83,9 @@ void GUI::display() {
 
     display_main_menu();
     display_cpu();
-    // mem_edit.DrawWindow("Memory", &mem, 10000);
+    display_tile_map();
+    mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
+    mem_edit.DrawWindow("IO", &(io.data), 0x80);
     
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
@@ -82,7 +97,7 @@ void GUI::display() {
 
     // Rendering
     ImGui::Render();
-    glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+    glViewport(0, 0, (int)imgui_io.DisplaySize.x, (int)imgui_io.DisplaySize.y);
     glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -110,6 +125,9 @@ void GUI::display_main_menu() {
         if (ImGui::BeginMenu("Cartridge")) {
             if (ImGui::MenuItem("Open..", "Ctrl+O")) {
                 ImGuiFileDialog::Instance()->OpenDialog("ChCartKey", "Choose a Cartridge file", ".gb", ".");
+            }
+            if (ImGui::MenuItem("TMP", "Ctrl+T")) {
+                bus.tmp_dump();
             }
             ImGui::EndMenu();
         }
@@ -181,3 +199,51 @@ void GUI::display_cpu() {
     ImGui::EndTable();
     ImGui::End();
 }
+
+void GUI::display_tile_map() {
+    int high_byte;
+    int low_byte;
+    int color;
+    int x, y;
+    int col, row;
+    int tile_no = 0;
+    int row_no;
+    SDL_Texture *texture;
+    // There are 512 tiles so we'll display them as a square that has 23x23 tiles
+    const int tiles_in_row = 23;
+    // Each tile is 8x8 pixels
+    const int surf_size = tiles_in_row * 8;
+    SDL_Surface *surface = SDL_CreateRGBSurface(0, surf_size, surf_size, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+    Uint32 *surface_pixels = static_cast<Uint32 *>(surface->pixels);
+    unsigned tmp_pallete[] = {0x00000000, 0x55555500, 0xAAAAAA00, 0xFFFFFF00};
+
+    for (int tile_start = 0x9800; tile_start <= 0x9FFF; tile_start += 16) {
+        row_no = 0;
+        for (int offset = 0; offset < 16; offset += 2) {
+            high_byte = bus.tmp_mem[tile_start + offset];
+            low_byte = bus.tmp_mem[tile_start + offset + 1];
+            for (int bit_no = 7; bit_no >= 0; --bit_no) {
+                color = ((high_byte >> bit_no) & 1) * 2 + ((low_byte >> bit_no) & 1);
+                row = tile_no / 23;
+                col = tile_no % 23;
+                y = (7 - bit_no) + 8 * col;
+                x = 8 * row + row_no;
+                if (color != 0) {
+                    int xxx = 0;
+                }
+                surface_pixels[(y * surf_size) + x] = tmp_pallete[color];
+            }
+            row_no += 1;
+        }
+        tile_no += 1;
+    }
+
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    ImGui::Begin("Tile Map", NULL);
+    ImGui::Image(texture, ImVec2(surf_size, surf_size));
+
+    ImGui::End();
+}
+
