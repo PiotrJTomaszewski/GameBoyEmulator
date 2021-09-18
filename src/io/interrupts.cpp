@@ -34,8 +34,8 @@ void Interrupts::all_interrupts_disable() {
 void Interrupts::intrs_update_state(bool state_before_last_opcode) {
     if (state_before_last_opcode) {
         interrupt_enable.value = 0xFF;
+        intrs_should_be_enabled = false;
     }
-    intrs_should_be_enabled = false;
 }
 
 bool Interrupts::get_intrs_should_be_enabled() {

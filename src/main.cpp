@@ -16,7 +16,7 @@ GUI gui(cpu, bus, io, ppu);
 
 int main(int argc, char *argv[]) {
 
-    bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
+    // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/large_picture.gb"));
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
     const long cpu_cycles_in_one_step = step_duration_micros * (cpu.get_clock_speed_Hz() / 1000000);
@@ -29,13 +29,13 @@ int main(int argc, char *argv[]) {
             while (cycles > 0) {
                 cycles -= cpu.next_cycle();
             }
+            ppu.tmp_tick();
             cycles = cpu_cycles_in_one_step;
             auto stop = std::chrono::high_resolution_clock::now();
             auto duration = stop - start;
             if (duration < std::chrono::microseconds(step_duration_micros)) {
                 std::this_thread::sleep_for(std::chrono::microseconds(step_duration_micros) - duration);
             }
-            ppu.tmp_tick();
         }
         ppu.render_tile_data();
         ppu.render_screen();

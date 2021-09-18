@@ -1,9 +1,9 @@
 #pragma once
 #include <cstdint>
 
-struct __attribute__((packed)) intr_reg_t {
+union intr_reg_t {
     uint8_t value;
-    struct FLAGS {
+    struct __attribute__((packed)) FLAGS {
         unsigned vblank: 1;
         unsigned lcd_stat: 1;
         unsigned timer: 1;

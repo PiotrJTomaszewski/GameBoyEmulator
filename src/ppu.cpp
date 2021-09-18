@@ -34,10 +34,16 @@ PPU::~PPU() {
 }
 
 void PPU::tmp_tick() {
-    // TODO: Remove
-    // LCD_data->LY = (LCD_data->LY + 1) % 154;
+    LCD_data->LY = (LCD_data->LY + 1) % 154;
+    if (LCD_data->LY == LCD_data->LYC) {
+        io.interrupts.signal(intr_type_t::LCD_STAT);
+    }
+    if (LCD_data->LY == 144) {
+        io.interrupts.signal(intr_type_t::VBLANK);
+    }
 }
 
+// TODO: Line by line rendernig would be much more suitable than my current tiling one :( But it'll do for now
 void PPU::render_screen() {
     int tile_id;
     uint8_t *tile_data;
@@ -70,10 +76,8 @@ void PPU::render_screen() {
             SDL_BlitSurface(tile_data_render.surface, &src_rect, screen_render.surface, &dst_rect);
         }
     }
-    // std::cout << std::endl;
 
     glEnable(GL_TEXTURE_2D);
-    // glActiveTexture(screen_render.texture);
     glBindTexture(GL_TEXTURE_2D, screen_render.texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_render.width, screen_render.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, screen_render.surface->pixels);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);

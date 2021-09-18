@@ -55,24 +55,25 @@ void CPU::restart() {
 // TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
 int CPU::next_cycle() {
     int cycles = 0;
+    bool old_intrs_should_be_enabled = io.interrupts.get_intrs_should_be_enabled();
+    intr_type_t ready_interrupt = io.interrupts.get_ready_interrupt();
+    if (ready_interrupt != NO_INTERRUPT) {
+        cycles += 5; // Preparation for interrupt execution takes 5 cycles
+        call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
+        io.interrupts.all_interrupts_disable();
+        io.interrupts.mark_used(ready_interrupt);
+        is_halted = false;
+    }
     if (!is_halted) {
-        bool old_intrs_should_be_enabled = io.interrupts.get_intrs_should_be_enabled();
-        intr_type_t ready_interrupt = io.interrupts.get_ready_interrupt();
-        if (ready_interrupt != NO_INTERRUPT) {
-            cycles += 5; // Preparation for interrupt execution takes 5 cycles
-            call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
-            io.interrupts.all_interrupts_disable();
-            io.interrupts.mark_used(ready_interrupt);
-        }
         cycles += cpu_exec_op(get_next_prog_byte());
-        io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
     } else {
         /* The processor is usually emulated in batches
         * so to avoid being stuck in an infinite loop
         * I've assumed that halted processor executes NOPs 
         */
-        cycles = 4;
+        cycles += 4;
     }
+    io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
     return cycles;
 }
 
