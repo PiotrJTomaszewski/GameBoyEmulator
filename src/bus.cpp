@@ -3,6 +3,8 @@
 #include <fstream>
 #include <cstring>
 
+// TODO: Allow accessing all types of memory "directly" using bus?
+
 Bus::Bus(IO &io): io{io} {
     is_cart_inserted = false;
     // TODO: Remove

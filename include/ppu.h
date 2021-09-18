@@ -1,12 +1,25 @@
 #pragma once
 #include <cstdint>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 #include "io/io.h"
+#include "bus.h"
 
 class PPU {
 public:
-    PPU(IO &io);
+    struct render_t {
+        SDL_Surface *surface;
+        GLuint texture;
+        int width;
+        int height;
+    };
+    PPU(IO &io, Bus &bus);
     ~PPU();
     void tmp_tick();
+    void render_screen();
+    void render_tile_data();
+    render_t &get_tile_data_render();
+    render_t &get_screen_render();
 
 private:
     enum lcd_en_dis_t {
@@ -15,8 +28,13 @@ private:
     };
 
     enum map_area_t {
-        LOWER_AREA = 0,
-        HIGHER_AREA = 1
+        AREA_9800 = 0,
+        AREA_9C00 = 1
+    };
+
+    enum data_area_t {
+        AREA_8800 = 0,
+        AREA_8000 = 1
     };
 
     enum OBJ_size_t {
@@ -41,7 +59,7 @@ private:
         lcd_en_dis_t OBJ_enable: 1; // 0 - Off, 1 - On
         OBJ_size_t OBJ_size: 1; // 0 - 8x8, 1 - 8x16
         map_area_t BG_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
-        map_area_t BG_and_window_tile_data_area: 1; // 0 - 8800-97FF, 1 - 8000-8FFF
+        data_area_t BG_and_window_tile_data_area: 1; // 0 - 8800-97FF, 1 - 8000-8FFF
         lcd_en_dis_t window_enable: 1; // 0 - Off, 1 - On
         map_area_t window_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
         lcd_en_dis_t LCD_and_PPU_enable: 1; // 0 - Off, 1 - On
@@ -87,5 +105,8 @@ private:
     };
 
     IO &io;
+    Bus &bus;
     LCD_data_t *LCD_data;
+    render_t tile_data_render, screen_render;
+    const int tile_data_tiles_in_row = 16;
 };

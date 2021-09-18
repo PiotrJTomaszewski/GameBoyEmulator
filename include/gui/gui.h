@@ -9,10 +9,11 @@
 #include "cpu/cpu.h"
 #include "bus.h"
 #include "io/io.h"
+#include "ppu.h"
 
 class GUI {
 public:
-    GUI(CPU &cpu, Bus &bus, IO &io);
+    GUI(CPU &cpu, Bus &bus, IO &io, PPU &ppu);
     ~GUI();
     void display();
     bool get_should_close();
@@ -20,6 +21,7 @@ private:
     CPU &cpu;
     Bus &bus;
     IO &io;
+    PPU &ppu;
     SDL_Window *window;
     SDL_GLContext gl_context;
     ImGuiIO imgui_io;
@@ -29,5 +31,6 @@ private:
     void handle_events();
     void display_main_menu();
     void display_cpu();
-    void display_tile_map();
+    void display_tile_data();
+    void display_screen();
 };

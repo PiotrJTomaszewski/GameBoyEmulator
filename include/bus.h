@@ -6,6 +6,7 @@
 
 class Bus {
     friend class GUI; // TODO: Remove?
+    friend class PPU;
 public:
     Bus(IO &io);
     ~Bus();

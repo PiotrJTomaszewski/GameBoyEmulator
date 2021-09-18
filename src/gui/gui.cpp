@@ -4,7 +4,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui/gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus, IO &io): cpu{cpu}, bus{bus}, io{io} {
+GUI::GUI(CPU &cpu, Bus &bus, IO &io, PPU &ppu): cpu{cpu}, bus{bus}, io{io}, ppu{ppu} {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -71,7 +71,8 @@ void GUI::display() {
 
     display_main_menu();
     display_cpu();
-    display_tile_map();
+    display_tile_data();
+    display_screen();
     mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
     mem_edit.DrawWindow("IO", &(io.data), 0x80);
     
@@ -185,54 +186,16 @@ void GUI::display_cpu() {
     ImGui::End();
 }
 
-void GUI::display_tile_map() {
-    int high_byte;
-    int low_byte;
-    int color;
-    int col, row;
-    uint8_t *curr_tile_data;
-
-    // There are 384 tiles. We'll display them in 16x24 grid
-    const int total_tile_count = 384;
-    const int tiles_in_row = 16;
-    const int tiles_rows = 24;
-    // Each tile is 8x8 pixels
-    const int surf_width = tiles_in_row * 8;
-    const int surf_height = tiles_rows * 8;
-    const int tile_data_start_addr = 0x8000;
-
-    SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, surf_width, surf_height, 32, SDL_PIXELFORMAT_RGBA32);
-    Uint32 *surface_pixels = static_cast<Uint32 *>(surface->pixels);
-    Uint32 color_palette[] = {0xFFFFFFFF, 0xFFAAAAAA, 0xFF555555, 0xFF000000};
-    GLuint texture;
-
-    curr_tile_data = bus.tmp_mem + tile_data_start_addr;
-    for (int tile_no = 0; tile_no < total_tile_count; ++tile_no) {
-        for (int tile_line_no = 0; tile_line_no < 8; ++tile_line_no) {
-            // Each line is represented by 2 bytes
-            low_byte = curr_tile_data[2 * tile_line_no];
-            high_byte = curr_tile_data[2 * tile_line_no + 1];
-            for (int bit_no = 7; bit_no >= 0; --bit_no) {
-                color = ((high_byte >> bit_no) & 1) << 1 | ((low_byte >> bit_no) & 1);
-                row = 8 * (tile_no / tiles_in_row) + tile_line_no;
-                col = 8 * (tile_no % tiles_in_row) + (7 - bit_no);
-                surface_pixels[(row * surf_width) + col] = color_palette[color];
-            }
-        }
-        // Each tile is 16 bytes
-        curr_tile_data += 16;
-    }
-
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surf_width, surf_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
- 
+void GUI::display_tile_data() {
     ImGui::Begin("Tile Data", NULL);
-    ImGui::Image(reinterpret_cast<ImTextureID>(texture), ImVec2(2 * surf_width, 2 * surf_height));
-    SDL_FreeSurface(surface);
+    PPU::render_t &render = ppu.get_tile_data_render();
+    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
     ImGui::End();
-    glDisable(GL_TEXTURE_2D);
+}
+
+void GUI::display_screen() {
+    ImGui::Begin("Screen", NULL);
+    PPU::render_t &render = ppu.get_screen_render();
+    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    ImGui::End();
 }
