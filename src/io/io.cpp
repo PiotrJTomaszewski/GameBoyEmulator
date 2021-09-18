@@ -14,7 +14,7 @@ void IO::write(uint16_t address, uint8_t value) {
     } else if (address == 0xFFFF) { // Interrupt Enable
         interrupts.interrupt_enable.value = value;
     } else {
-        data[address-0xFF00];
+        data[address-0xFF00] = value;
     }
 }
 

@@ -22,7 +22,7 @@ public:
     flags_reg_t get_flags_reg() {return flags_reg;}
     void restart();
     int next_cycle();
-    const long get_clock_speed_Hz();
+    long get_clock_speed_Hz();
 private:
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;

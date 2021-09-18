@@ -76,7 +76,7 @@ int CPU::next_cycle() {
     return cycles;
 }
 
-const long CPU::get_clock_speed_Hz() {
+long CPU::get_clock_speed_Hz() {
     return CLOCK_SPEED_HZ;
 }
 

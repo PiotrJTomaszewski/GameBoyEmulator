@@ -4,12 +4,12 @@
 struct __attribute__((packed)) intr_reg_t {
     uint8_t value;
     struct FLAGS {
-        int vblank: 1;
-        int lcd_stat: 1;
-        int timer: 1;
-        int serial: 1;
-        int joypad: 1;
-        int _unused: 3;
+        unsigned vblank: 1;
+        unsigned lcd_stat: 1;
+        unsigned timer: 1;
+        unsigned serial: 1;
+        unsigned joypad: 1;
+        unsigned _unused: 3;
     } flags;
 };
 

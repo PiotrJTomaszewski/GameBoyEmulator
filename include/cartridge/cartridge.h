@@ -12,7 +12,6 @@ public:
     uint8_t read(uint16_t address);
 
 private:
-    int size;
     uint8_t *data;
     // TODO: Implement mappers
 };

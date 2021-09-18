@@ -12,7 +12,7 @@ Interrupts::~Interrupts() {
 
 intr_type_t Interrupts::get_ready_interrupt() {
     for (int bit_no = 0; bit_no <= 4; ++bit_no) {
-        if ((interrupt_enable.value & interrupt_flag.value) & bit_no != 0) {
+        if (((interrupt_enable.value & interrupt_flag.value) & bit_no) != 0) {
             return static_cast<intr_type_t>(bit_no);
         }
     }

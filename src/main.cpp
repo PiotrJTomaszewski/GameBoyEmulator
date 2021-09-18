@@ -16,7 +16,7 @@ PPU ppu(io);
 
 int main(int argc, char *argv[]) {
 
-    bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
+    bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/large_picture.gb"));
     bool is_cart = bus.get_is_cart_inserted();
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
