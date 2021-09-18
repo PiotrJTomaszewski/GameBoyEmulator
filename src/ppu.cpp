@@ -38,45 +38,54 @@ void PPU::tmp_tick() {
     if (LCD_data->LY == LCD_data->LYC) {
         io.interrupts.signal(intr_type_t::LCD_STAT);
     }
-    if (LCD_data->LY == 144) {
+    if (LCD_data->LY < 144) {
+        render_next_screen_line();
+        // __remove__render_screen();
+    } else if (LCD_data->LY == 144) {
         io.interrupts.signal(intr_type_t::VBLANK);
+    }
+    io.interrupts.signal(VBLANK);
+}
+
+// TODO: Still not perfect as I'm yet to implement Pixel FIFO
+void PPU::render_next_screen_line() {
+    int tile_row = LCD_data->LY / 8;
+    int tile_line_no = LCD_data->LY % 8;
+
+    int high_byte;
+    int low_byte;
+    int color;
+    int col, row;
+    uint8_t *tile_map;
+    int tile_addr;
+
+    Uint32 *surface_pixels = static_cast<Uint32 *>(screen_render.surface->pixels);
+    Uint32 color_palette[] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF}; // TODO: Use the palette from register
+
+    if (LCD_data->LCD_control.BG_tile_map_area == map_area_t::AREA_9800) {
+       tile_map = bus.tmp_mem + 0x9800;
+    } else {
+        tile_map = bus.tmp_mem + 0x9C00;
+    }
+
+    for (int tile_col = 0; tile_col < 32; ++tile_col) {
+        if (LCD_data->LCD_control.BG_and_window_tile_data_area == data_area_t::AREA_8000) {
+            tile_addr = 0x8000 + 16 * tile_map[32 * tile_row + tile_col];
+        } else {
+            tile_addr = 0x8800 + 16 * static_cast<int8_t>(tile_map[32 * tile_row + tile_col]);
+        }
+        low_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no];
+        high_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no + 1];
+        for (int bit_no = 7; bit_no >= 0; --bit_no) {
+            color = ((high_byte >> bit_no) & 1) << 1 | ((low_byte >> bit_no) & 1);
+            row = 8 * tile_row + tile_line_no;
+            col = 8 * tile_col + (7 - bit_no);
+            surface_pixels[(row * screen_render.width) + col] = color_palette[color];
+        }
     }
 }
 
-// TODO: Line by line rendernig would be much more suitable than my current tiling one :( But it'll do for now
 void PPU::render_screen() {
-    int tile_id;
-    uint8_t *tile_data;
-    SDL_Rect src_rect;
-    src_rect.w = 8;
-    src_rect.h = 8;
-    SDL_Rect dst_rect;
-    dst_rect.w = 8;
-    dst_rect.h = 8;
-
-    if (LCD_data->LCD_control.BG_tile_map_area == map_area_t::AREA_9800) {
-       tile_data = bus.tmp_mem + 0x9800;
-    } else {
-        tile_data = bus.tmp_mem + 0x9C00;
-    }
-
-    for (int tile_row = 0; tile_row < 32; ++tile_row) {
-        for (int tile_col = 0; tile_col < 32; ++tile_col) {
-            // TODO: Add comment
-            if (LCD_data->LCD_control.BG_and_window_tile_data_area == data_area_t::AREA_8000) {
-                tile_id = tile_data[32 * tile_row + tile_col];
-            } else {
-                tile_id = 128 + static_cast<int8_t>(tile_data[32 * tile_row + tile_col]);
-            }
-            // std::cout << tile_id << " ";
-            src_rect.x = (tile_id % tile_data_tiles_in_row) * 8;
-            src_rect.y = (tile_id / tile_data_tiles_in_row) * 8;
-            dst_rect.x = 8 * tile_col;
-            dst_rect.y = 8 * tile_row;
-            SDL_BlitSurface(tile_data_render.surface, &src_rect, screen_render.surface, &dst_rect);
-        }
-    }
-
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, screen_render.texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screen_render.width, screen_render.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, screen_render.surface->pixels);
@@ -84,7 +93,6 @@ void PPU::render_screen() {
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glDisable(GL_TEXTURE_2D);
 }
-
 
 void PPU::render_tile_data() {
     int high_byte;

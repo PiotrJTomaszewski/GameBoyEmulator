@@ -15,6 +15,8 @@ public:
     void insert_cartridge(Cartridge* cartridge);
     void remove_cartridge();
     bool get_is_cart_inserted();
+    void tmp_dump();
+    void tmp_load();
 private:
     std::unique_ptr<Cartridge> cartridge;
     IO &io;

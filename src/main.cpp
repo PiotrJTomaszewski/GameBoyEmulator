@@ -16,7 +16,7 @@ GUI gui(cpu, bus, io, ppu);
 
 int main(int argc, char *argv[]) {
 
-    // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/large_picture.gb"));
+    bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
     const long cpu_cycles_in_one_step = step_duration_micros * (cpu.get_clock_speed_Hz() / 1000000);

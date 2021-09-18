@@ -18,6 +18,7 @@ public:
     void tmp_tick();
     void render_screen();
     void render_tile_data();
+    void render_next_screen_line();
     render_t &get_tile_data_render();
     render_t &get_screen_render();
 

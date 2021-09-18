@@ -80,6 +80,7 @@ void GUI::display() {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
             bus.insert_cartridge(new Cartridge(filePathName));
+            cpu.restart();
         }
         ImGuiFileDialog::Instance()->Close();
     }
@@ -114,6 +115,9 @@ void GUI::display_main_menu() {
         if (ImGui::BeginMenu("Cartridge")) {
             if (ImGui::MenuItem("Open..", "Ctrl+O")) {
                 ImGuiFileDialog::Instance()->OpenDialog("ChCartKey", "Choose a Cartridge file", ".gb", ".");
+            }
+            if (ImGui::MenuItem("Dump")) {
+                bus.tmp_dump();
             }
             ImGui::EndMenu();
         }

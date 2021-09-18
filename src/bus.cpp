@@ -61,3 +61,15 @@ void Bus::remove_cartridge() {
 bool Bus::get_is_cart_inserted() {
     return is_cart_inserted;
 }
+
+void Bus::tmp_dump() {
+    std::fstream file;
+    file.open("mem.bin", std::ios::out|std::ios::binary);
+    file.write((char *)tmp_mem, 0xFFFF+1);
+}
+
+void Bus::tmp_load() {
+    std::fstream file;
+    file.open("mem.bin", std::ios::in|std::ios::binary);
+    file.read((char *)tmp_mem, 0xFFFF+1);
+}
