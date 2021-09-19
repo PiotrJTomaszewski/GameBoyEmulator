@@ -21,16 +21,16 @@ int main(int argc, char *argv[]) {
     const long step_duration_micros = 16666; // 60 Hz
     const long cpu_cycles_in_one_step = step_duration_micros * (cpu.get_clock_speed_Hz() / 1000000);
     long cycles_left_in_step = cpu_cycles_in_one_step;
-    int instr_cycles;
+    int cpu_cycles;
 
     while (!gui.get_should_close()) {
         if (bus.get_is_cart_inserted()) { // TODO: Add CPU execution controller in GUI
             auto start = std::chrono::high_resolution_clock::now();
             while (cycles_left_in_step > 0) {
-                instr_cycles = cpu.next_cycle();
-                io.timer.tick(instr_cycles);
-                ppu.tmp_tick();
-                cycles_left_in_step -= instr_cycles;
+                cpu_cycles = cpu.next_cycle();
+                io.timer.tick(cpu_cycles);
+                ppu.tmp_tick(cpu_cycles);
+                cycles_left_in_step -= cpu_cycles;
             }
             cycles_left_in_step = cpu_cycles_in_one_step;
             auto stop = std::chrono::high_resolution_clock::now();

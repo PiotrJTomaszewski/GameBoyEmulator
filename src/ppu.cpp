@@ -3,8 +3,7 @@
 
 PPU::PPU(IO &io, Bus &bus): io{io}, bus{bus} {
     LCD_data = (LCD_data_t *)(io.data + 0xFF40 - 0xFF00);
-    // TODO: Remove
-    LCD_data->LY = 0x90;
+    restart();
 
     GLuint textures[2];
     glGenTextures(2, textures);
@@ -33,22 +32,96 @@ PPU::~PPU() {
     glDeleteTextures(1, &screen_render.texture);
 }
 
-void PPU::tmp_tick() {
-    LCD_data->LY = (LCD_data->LY + 1) % 154;
-    if (LCD_data->LY == LCD_data->LYC) {
+void PPU::restart() {
+    dots_in_current_mode = 0;
+    ((uint8_t *)LCD_data)[0] = 0x91; // LCDC;
+    LCD_data->SCY = 0;
+    LCD_data->SCX = 0;
+    LCD_data->LYC = 0;
+    LCD_data->BGP.value = 0x00;
+    LCD_data->OBP0.value = 0xFF;
+    LCD_data->OBP1.value = 0xFF;
+    LCD_data->WY = 0;
+    LCD_data->WX = 0;
+}
+
+void PPU::tmp_tick(unsigned cpu_clocks) {
+    // TODO: Enable / disable VRAM access
+    // TODO: Implement a proper cycle to dot conversion
+    dots_in_current_mode += cpu_clocks;
+
+    switch(LCD_data->LCD_status.mode_flag) {
+        case mode_flag_t::IN_HBLANK:
+            if (dots_in_current_mode >= 85-1) { // TODO: 85 or 84
+                // Line 143 is the last line in a frame. After this PPU enters VBlank
+                if (LCD_data->LY <= 143) {
+                    // Begin a new line
+                    enter_mode_searching_OAM();
+                } else {
+                    // Enter VBlank
+                    enter_mode_vblank();
+                }
+                dots_in_current_mode -= 85;
+            }
+            break;
+        case mode_flag_t::IN_VBLANK:
+            if (dots_in_current_mode >= 4560-1) {
+                // Begin a new line
+                enter_mode_searching_OAM();
+                dots_in_current_mode -= 4560;
+            } else if (LCD_data->LY < 153) { // LY should go from 144 to 153 in this mode
+                ++LCD_data->LY;
+            }
+            break;
+        case mode_flag_t::SEARCHING_OAM:
+            if (dots_in_current_mode >= 80-1) {
+                enter_mode_rendering();
+                dots_in_current_mode -= 80;
+            }
+            break;
+        case mode_flag_t::RENDERING:
+            if (dots_in_current_mode >= 291-1) {
+                enter_mode_hblank();
+                dots_in_current_mode -= 291;
+            }
+            break;
+    }
+
+    if ((LCD_data->LY == LCD_data->LYC) && (LCD_data->LCD_status.LYC_eq_LY_STAT_intr_src != 0)) {
         io.interrupts.signal(intr_type_t::LCD_STAT);
     }
-    if (LCD_data->LY < 144) {
-        render_next_screen_line();
-        // __remove__render_screen();
-    } else if (LCD_data->LY == 144) {
-        io.interrupts.signal(intr_type_t::VBLANK);
+}
+
+inline void PPU::enter_mode_searching_OAM() {
+    LCD_data->LCD_status.mode_flag = mode_flag_t::SEARCHING_OAM;
+    LCD_data->LY = (LCD_data->LY  + 1) % 154;
+    if (LCD_data->LCD_status.OAM_STAT_intr_src != 0) {
+        io.interrupts.signal(intr_type_t::LCD_STAT);
     }
-    io.interrupts.signal(VBLANK);
+}
+
+inline void PPU::enter_mode_rendering() {
+    LCD_data->LCD_status.mode_flag = mode_flag_t::RENDERING;
+    render_current_screen_line();
+}
+
+inline void PPU::enter_mode_hblank() {
+    LCD_data->LCD_status.mode_flag = mode_flag_t::IN_HBLANK;
+    if (LCD_data->LCD_status.hblank_STAT_intr_src != 0) {
+        io.interrupts.signal(intr_type_t::LCD_STAT);
+    }
+}
+
+inline void PPU::enter_mode_vblank() {
+    LCD_data->LCD_status.mode_flag = mode_flag_t::IN_VBLANK;
+    io.interrupts.signal(intr_type_t::VBLANK);
+    if (LCD_data->LCD_status.vblank_STAT_intr_src != 0) {
+        io.interrupts.signal(intr_type_t::LCD_STAT);
+    }
 }
 
 // TODO: Still not perfect as I'm yet to implement Pixel FIFO
-void PPU::render_next_screen_line() {
+void PPU::render_current_screen_line() {
     int tile_row = LCD_data->LY / 8;
     int tile_line_no = LCD_data->LY % 8;
 
@@ -117,8 +190,8 @@ void PPU::render_tile_data() {
             high_byte = curr_tile_data[2 * tile_line_no + 1];
             for (int bit_no = 7; bit_no >= 0; --bit_no) {
                 color = ((high_byte >> bit_no) & 1) << 1 | ((low_byte >> bit_no) & 1);
-                row = 8 * (tile_no / tile_data_tiles_in_row) + tile_line_no;
-                col = 8 * (tile_no % tile_data_tiles_in_row) + (7 - bit_no);
+                row = 8 * (tile_no / TILE_DATA_TILES_IN_ROW) + tile_line_no;
+                col = 8 * (tile_no % TILE_DATA_TILES_IN_ROW) + (7 - bit_no);
                 surface_pixels[(row * tile_data_render.width) + col] = color_palette[color];
             }
         }

@@ -19,7 +19,7 @@ void Timer::tick(unsigned cpu_cycles) {
     if (!is_DIV_stopped) {
         DIV_CPU_clock_counter += cpu_cycles;
         // DIV is incremented at a rate of 16384Hz which is equal to 256 CPU clock cycles
-        if (DIV_CPU_clock_counter >= 256) {
+        if (DIV_CPU_clock_counter >= 256) { // TODO: 256 or 255 xd
             timer_data.DIV = (timer_data.DIV + 1) & 0xFF;
         }
         DIV_CPU_clock_counter %= 256;
@@ -27,7 +27,7 @@ void Timer::tick(unsigned cpu_cycles) {
 
     if (timer_data.TAC.mode.timer_enabled) {
         TIMA_CPU_clock_counter += cpu_cycles;
-        if (TIMA_CPU_clock_counter >= CLK_DIVIDER_LOOKUP[timer_data.TAC.mode.clk_divider]) {
+        if (TIMA_CPU_clock_counter >= CLK_DIVIDER_LOOKUP[timer_data.TAC.mode.clk_divider]) { // TODO: Same as above xd
             // Timer will overflow when incremented
             if (timer_data.TIMA == 0xFF) {
                 timer_data.TIMA = timer_data.TMA;

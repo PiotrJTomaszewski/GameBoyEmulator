@@ -15,10 +15,11 @@ public:
     };
     PPU(IO &io, Bus &bus);
     ~PPU();
-    void tmp_tick();
+    void restart();
+    void tmp_tick(unsigned cpu_clocks);
     void render_screen();
     void render_tile_data();
-    void render_next_screen_line();
+    void render_current_screen_line();
     render_t &get_tile_data_render();
     render_t &get_screen_render();
 
@@ -52,10 +53,10 @@ private:
         IN_HBLANK = 0,
         IN_VBLANK = 1,
         SEARCHING_OAM = 2,
-        TRANSFERRING_DATA = 3
+        RENDERING = 3
     };
 
-    struct __attribute__((packed)) LLCDC_t {
+        struct __attribute__((packed)) LLCDC_t {
         lcd_en_dis_t BG_and_window_enable: 1; // 0 - Off, 1 - On
         lcd_en_dis_t OBJ_enable: 1; // 0 - Off, 1 - On
         OBJ_size_t OBJ_size: 1; // 0 - 8x8, 1 - 8x16
@@ -69,9 +70,9 @@ private:
     struct __attribute__((packed)) STAT_t {
         mode_flag_t mode_flag: 2; // 0 - In HBlank, 1 - In VBlank, 2 - Searching OAM, 3 - Transferring data to LCD controller
         diff_eq_t LYC_eq_LY: 1; // 0 - different, 1 - equal
-        lcd_en_dis_t mode_0_hblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        lcd_en_dis_t mode_1_vblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        lcd_en_dis_t mode_2_OAM_STAT_intr_src: 1; // 0 - disable, 1 - enable
+        lcd_en_dis_t hblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
+        lcd_en_dis_t vblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
+        lcd_en_dis_t OAM_STAT_intr_src: 1; // 0 - disable, 1 - enable
         lcd_en_dis_t LYC_eq_LY_STAT_intr_src: 1; // 0 - disable, 1 - enable
         int _unused: 1;
     };
@@ -83,11 +84,14 @@ private:
         BLACK = 3
     };
 
-    struct __attribute__((packed)) palette_data_t {
-        color_t index0: 2;
-        color_t index1: 2;
-        color_t index2: 2;
-        color_t index3: 2;
+    union __attribute__((packed)) palette_data_t {
+        uint8_t value;
+        struct INNER {
+            color_t index0: 2;
+            color_t index1: 2;
+            color_t index2: 2;
+            color_t index3: 2;
+        } colors;
     };
 
     struct __attribute__((packed)) LCD_data_t {
@@ -109,5 +113,11 @@ private:
     Bus &bus;
     LCD_data_t *LCD_data;
     render_t tile_data_render, screen_render;
-    const int tile_data_tiles_in_row = 16;
+    const int TILE_DATA_TILES_IN_ROW = 16;
+    int dots_in_current_mode;
+
+    inline void enter_mode_searching_OAM();
+    inline void enter_mode_rendering();
+    inline void enter_mode_hblank();
+    inline void enter_mode_vblank();
 };
