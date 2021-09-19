@@ -23,8 +23,6 @@
 #define regSP_higher _regSP.pair.higher
 #define regSP_lower _regSP.pair.lower
 
-uint16_t INTERRUPT_PC_LOOKUP[] = {0x40, 0x48, 0x50, 0x58, 0x60};
-
 CPU::CPU(Bus &bus, IO &io): bus{bus}, io{io} {
     restart();
 }
@@ -45,6 +43,7 @@ void CPU::restart() {
     regHL = 0x014D;
     flags_reg.value = 0x00;
     is_halted = false;
+    is_stopped = false;
 }
 
 /**
@@ -64,7 +63,7 @@ int CPU::next_cycle() {
         io.interrupts.mark_used(ready_interrupt);
         is_halted = false;
     }
-    if (!is_halted) {
+    if (!(is_halted || is_stopped)) {
         cycles += cpu_exec_op(get_next_prog_byte());
     } else {
         /* The processor is usually emulated in batches
@@ -426,6 +425,18 @@ inline void CPU::call_addr(uint16_t addr) {
     regPC = addr;
 }
 
+inline void CPU::stop() {
+    is_stopped = true;
+    // TODO: Stop the LCD
+    io.timer.stop_DIV();
+}
+
+inline void CPU::run_after_stop() {
+    is_stopped = false;
+    // TODO: Run the LCD
+    io.timer.run_DIV_after_stop();
+}
+
 /**
  * Executes an operation specified by a given opcode on the CPU
  * Returns the number of clock cycles this operation takes
@@ -501,7 +512,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             switch (get_next_prog_byte()) {
             case 0x00: // STOP; 2 bytes; 4 cycles
                 // TODO: Halt the LCD
-                is_halted = true;
+                stop();
                 operation_cycles = 4;
                 break;
             default:
@@ -956,6 +967,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x76: // HALT; 1 byte; 4 cycles
             is_halted = true;
+            // TODO: If interrupts are disabled the next instruction should be skipped
             operation_cycles = 4;
             break;
         case 0x77: // LD (HL),A; 1 byte; 8 cycles

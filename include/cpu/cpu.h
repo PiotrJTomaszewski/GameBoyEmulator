@@ -29,8 +29,9 @@ private:
     flags_reg_t flags_reg;
     Bus &bus;
     IO &io;
-    bool is_halted;
+    bool is_halted, is_stopped, is_running;
     const long CLOCK_SPEED_HZ = 4194304;
+    const uint16_t INTERRUPT_PC_LOOKUP[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
     uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
     uint16_t add16bit_with_flags(uint16_t val1, uint16_t val2);
@@ -58,4 +59,6 @@ private:
     int cond_call(bool condition);
     inline void call_addr(uint16_t addr);
     int cpu_exec_op(uint8_t opcode);
+    inline void stop();
+    inline void run_after_stop();
 };

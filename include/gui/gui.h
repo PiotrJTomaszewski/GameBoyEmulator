@@ -33,4 +33,5 @@ private:
     void display_cpu();
     void display_tile_data();
     void display_screen();
+    void display_timer();
 };

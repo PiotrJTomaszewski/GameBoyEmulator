@@ -15,3 +15,4 @@ void VideoRAM::write(uint16_t address, uint8_t value) {
 uint8_t VideoRAM::read(uint16_t address) {
     return data[address];
 }
+// TODO: Move VRAM to PPU

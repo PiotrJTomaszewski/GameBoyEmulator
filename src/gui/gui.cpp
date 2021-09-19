@@ -73,6 +73,7 @@ void GUI::display() {
     display_cpu();
     display_tile_data();
     display_screen();
+    display_timer();
     mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
     mem_edit.DrawWindow("IO", &(io.data), 0x80);
     
@@ -201,5 +202,15 @@ void GUI::display_screen() {
     ImGui::Begin("Screen", NULL);
     PPU::render_t &render = ppu.get_screen_render();
     ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    ImGui::End();
+}
+
+void GUI::display_timer() {
+    ImGui::Begin("Timer", NULL);
+    ImGui::Text("DIV: 0x%02X", io.timer.get_DIV());
+    ImGui::Text("TIMA: 0x%02X", io.timer.get_TIMA());
+    ImGui::Text("TMA: %02X", io.timer.get_TMA());
+    ImGui::Text("Enabled: %d", io.timer.get_TAC_is_enabled());
+    ImGui::Text("Divider: %d", io.timer.get_TAC_clock_divider());
     ImGui::End();
 }
