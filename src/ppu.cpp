@@ -34,7 +34,7 @@ PPU::~PPU() {
 
 void PPU::restart() {
     dots_in_current_mode = 0;
-    ((uint8_t *)LCD_data)[0] = 0x91; // LCDC;
+    LCD_data->LCD_control.value = 0x91;
     LCD_data->SCY = 0;
     LCD_data->SCX = 0;
     LCD_data->LYC = 0;
@@ -48,74 +48,79 @@ void PPU::restart() {
 void PPU::tmp_tick(unsigned cpu_clocks) {
     // TODO: Enable / disable VRAM access
     // TODO: Implement a proper cycle to dot conversion
-    dots_in_current_mode += cpu_clocks;
+    if (LCD_data->LCD_control.bits.LCD_and_PPU_enable) {
+        dots_in_current_mode += cpu_clocks;
 
-    switch(LCD_data->LCD_status.mode_flag) {
-        case mode_flag_t::IN_HBLANK:
-            if (dots_in_current_mode >= 85-1) { // TODO: 85 or 84
-                // Line 143 is the last line in a frame. After this PPU enters VBlank
-                if (LCD_data->LY <= 143) {
+        switch(LCD_data->LCD_status.bits.mode_flag) {
+            case mode_flag_t::IN_HBLANK:
+                if (dots_in_current_mode >= 85-1) { // TODO: 85 or 84
+                    // Line 143 is the last line in a frame. After this PPU enters VBlank
+                    if (LCD_data->LY <= 143) {
+                        // Begin a new line
+                        enter_mode_searching_OAM();
+                    } else {
+                        // Enter VBlank
+                        enter_mode_vblank();
+                    }
+                    dots_in_current_mode -= 85;
+                }
+                break;
+            case mode_flag_t::IN_VBLANK:
+                if (dots_in_current_mode >= 4560-1) {
                     // Begin a new line
                     enter_mode_searching_OAM();
-                } else {
-                    // Enter VBlank
-                    enter_mode_vblank();
+                    dots_in_current_mode -= 4560;
+                } else if (LCD_data->LY < 153) { // LY should go from 144 to 153 in this mode
+                    increment_LY();
                 }
-                dots_in_current_mode -= 85;
-            }
-            break;
-        case mode_flag_t::IN_VBLANK:
-            if (dots_in_current_mode >= 4560-1) {
-                // Begin a new line
-                enter_mode_searching_OAM();
-                dots_in_current_mode -= 4560;
-            } else if (LCD_data->LY < 153) { // LY should go from 144 to 153 in this mode
-                ++LCD_data->LY;
-            }
-            break;
-        case mode_flag_t::SEARCHING_OAM:
-            if (dots_in_current_mode >= 80-1) {
-                enter_mode_rendering();
-                dots_in_current_mode -= 80;
-            }
-            break;
-        case mode_flag_t::RENDERING:
-            if (dots_in_current_mode >= 291-1) {
-                enter_mode_hblank();
-                dots_in_current_mode -= 291;
-            }
-            break;
-    }
-
-    if ((LCD_data->LY == LCD_data->LYC) && (LCD_data->LCD_status.LYC_eq_LY_STAT_intr_src != 0)) {
-        io.interrupts.signal(intr_type_t::LCD_STAT);
+                break;
+            case mode_flag_t::SEARCHING_OAM:
+                if (dots_in_current_mode >= 80-1) {
+                    enter_mode_rendering();
+                    dots_in_current_mode -= 80;
+                }
+                break;
+            case mode_flag_t::RENDERING:
+                if (dots_in_current_mode >= 291-1) {
+                    enter_mode_hblank();
+                    dots_in_current_mode -= 291;
+                }
+                break;
+        }
     }
 }
 
 inline void PPU::enter_mode_searching_OAM() {
-    LCD_data->LCD_status.mode_flag = mode_flag_t::SEARCHING_OAM;
-    LCD_data->LY = (LCD_data->LY  + 1) % 154;
-    if (LCD_data->LCD_status.OAM_STAT_intr_src != 0) {
+    LCD_data->LCD_status.bits.mode_flag = mode_flag_t::SEARCHING_OAM;
+    increment_LY();
+    if (LCD_data->LCD_status.bits.OAM_STAT_intr_src != 0) {
         io.interrupts.signal(intr_type_t::LCD_STAT);
     }
 }
 
 inline void PPU::enter_mode_rendering() {
-    LCD_data->LCD_status.mode_flag = mode_flag_t::RENDERING;
+    LCD_data->LCD_status.bits.mode_flag = mode_flag_t::RENDERING;
     render_current_screen_line();
 }
 
 inline void PPU::enter_mode_hblank() {
-    LCD_data->LCD_status.mode_flag = mode_flag_t::IN_HBLANK;
-    if (LCD_data->LCD_status.hblank_STAT_intr_src != 0) {
+    LCD_data->LCD_status.bits.mode_flag = mode_flag_t::IN_HBLANK;
+    if (LCD_data->LCD_status.bits.hblank_STAT_intr_src != 0) {
         io.interrupts.signal(intr_type_t::LCD_STAT);
     }
 }
 
 inline void PPU::enter_mode_vblank() {
-    LCD_data->LCD_status.mode_flag = mode_flag_t::IN_VBLANK;
+    LCD_data->LCD_status.bits.mode_flag = mode_flag_t::IN_VBLANK;
     io.interrupts.signal(intr_type_t::VBLANK);
-    if (LCD_data->LCD_status.vblank_STAT_intr_src != 0) {
+    if (LCD_data->LCD_status.bits.vblank_STAT_intr_src != 0) {
+        io.interrupts.signal(intr_type_t::LCD_STAT);
+    }
+}
+
+inline void PPU::increment_LY() {
+    LCD_data->LY = (LCD_data->LY  + 1) % 154;
+    if ((LCD_data->LY == LCD_data->LYC) && (LCD_data->LCD_status.bits.LYC_eq_LY_STAT_intr_src != 0)) {
         io.interrupts.signal(intr_type_t::LCD_STAT);
     }
 }
@@ -136,19 +141,20 @@ void PPU::render_current_screen_line() {
     Uint32 *surface_pixels = static_cast<Uint32 *>(screen_render.surface->pixels);
     Uint32 color_palette[] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF}; // TODO: Use the palette from register
 
-    if (LCD_data->LCD_control.BG_tile_map_area == map_area_t::AREA_9800) {
+    if (LCD_data->LCD_control.bits.BG_tile_map_area == map_area_t::AREA_9800) {
        tile_map = bus.tmp_mem + 0x9800;
     } else {
         tile_map = bus.tmp_mem + 0x9C00;
     }
 
     for (int tile_col = 0; tile_col < 32; ++tile_col) {
-        if (LCD_data->LCD_control.BG_and_window_tile_data_area == data_area_t::AREA_8000) {
+        if (LCD_data->LCD_control.bits.BG_and_window_tile_data_area == data_area_t::AREA_8000) {
             tile_addr = 0x8000 + 16 * tile_map[32 * tile_row + tile_col];
         } else {
             memcpy(&signed_offset, tile_map + (32 * tile_row + tile_col), 1);
             tile_addr = 0x8800 + 16 * signed_offset;
         }
+
         low_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no];
         high_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no + 1];
         for (int bit_no = 7; bit_no >= 0; --bit_no) {

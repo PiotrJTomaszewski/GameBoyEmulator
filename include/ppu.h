@@ -56,25 +56,31 @@ private:
         RENDERING = 3
     };
 
-        struct __attribute__((packed)) LLCDC_t {
-        lcd_en_dis_t BG_and_window_enable: 1; // 0 - Off, 1 - On
-        lcd_en_dis_t OBJ_enable: 1; // 0 - Off, 1 - On
-        OBJ_size_t OBJ_size: 1; // 0 - 8x8, 1 - 8x16
-        map_area_t BG_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
-        data_area_t BG_and_window_tile_data_area: 1; // 0 - 8800-97FF, 1 - 8000-8FFF
-        lcd_en_dis_t window_enable: 1; // 0 - Off, 1 - On
-        map_area_t window_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
-        lcd_en_dis_t LCD_and_PPU_enable: 1; // 0 - Off, 1 - On
+    union __attribute__((packed)) LLCDC_t {
+        uint8_t value;
+        struct __attribute__((packed)) INNER {
+            lcd_en_dis_t BG_and_window_enable: 1; // 0 - Off, 1 - On
+            lcd_en_dis_t OBJ_enable: 1; // 0 - Off, 1 - On
+            OBJ_size_t OBJ_size: 1; // 0 - 8x8, 1 - 8x16
+            map_area_t BG_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
+            data_area_t BG_and_window_tile_data_area: 1; // 0 - 8800-97FF, 1 - 8000-8FFF
+            lcd_en_dis_t window_enable: 1; // 0 - Off, 1 - On
+            map_area_t window_tile_map_area: 1; // 0 - 9800-9BFF, 1 - 9C00-9FFF
+            lcd_en_dis_t LCD_and_PPU_enable: 1; // 0 - Off, 1 - On
+        } bits;
     };
 
-    struct __attribute__((packed)) STAT_t {
-        mode_flag_t mode_flag: 2; // 0 - In HBlank, 1 - In VBlank, 2 - Searching OAM, 3 - Transferring data to LCD controller
-        diff_eq_t LYC_eq_LY: 1; // 0 - different, 1 - equal
-        lcd_en_dis_t hblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        lcd_en_dis_t vblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        lcd_en_dis_t OAM_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        lcd_en_dis_t LYC_eq_LY_STAT_intr_src: 1; // 0 - disable, 1 - enable
-        int _unused: 1;
+    union __attribute__((packed)) STAT_t {
+        uint8_t value;
+        struct __attribute__((packed)) INNER {
+            mode_flag_t mode_flag: 2; // 0 - In HBlank, 1 - In VBlank, 2 - Searching OAM, 3 - Transferring data to LCD controller
+            diff_eq_t LYC_eq_LY: 1; // 0 - different, 1 - equal
+            lcd_en_dis_t hblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
+            lcd_en_dis_t vblank_STAT_intr_src: 1; // 0 - disable, 1 - enable
+            lcd_en_dis_t OAM_STAT_intr_src: 1; // 0 - disable, 1 - enable
+            lcd_en_dis_t LYC_eq_LY_STAT_intr_src: 1; // 0 - disable, 1 - enable
+            int _unused: 1;
+        } bits;
     };
 
     enum color_t {
@@ -120,4 +126,5 @@ private:
     inline void enter_mode_rendering();
     inline void enter_mode_hblank();
     inline void enter_mode_vblank();
+    inline void increment_LY();
 };
