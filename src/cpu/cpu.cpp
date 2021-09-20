@@ -1,3 +1,4 @@
+#include <cstring>
 #include "bus.h"
 #include "cpu/cpu.h"
 
@@ -80,6 +81,12 @@ long CPU::get_clock_speed_Hz() {
     return CLOCK_SPEED_HZ;
 }
 
+inline int8_t unsigned_byte_to_signed(uint8_t ubyte) {
+    int8_t sbyte;
+    memcpy(&sbyte, &ubyte, 1);
+    return sbyte;
+}
+
 /**
  * Adds two 8bit values with carry and sets the flags accordingly
  * Affected flags: Z, N, H, C
@@ -106,6 +113,22 @@ uint16_t CPU::add16bit_with_flags(uint16_t val1, uint16_t val2) {
     flags_reg.flags.H = (((val1 & 0xFFF) + (val2 & 0xFFF)) > 0xFFF); // TODO: Check if it's calculated properly
     flags_reg.flags.C = (result >= 0x10000);
     return result & 0xFFFF;
+}
+
+/**
+ * Adds a signed 8 bit value to a 16bit unsigned one and sets the carry flag acoordingly
+ * Affected flags: Z, N, H, C
+ * Affected registers: None
+ */
+uint16_t CPU::add_s8bit_to_u16bit_with_flags(int8_t val1, uint16_t val2) {
+    int result = val1 + val2;
+    uint16_t result16bit = result & 0xFFFF;
+    flags_reg.flags.Z = (result16bit == 0);
+    flags_reg.flags.N = 0;
+    // Flags behave as if we were adding 8 bit values
+    flags_reg.flags.H = (((val1 & 0x0F) + (val2 & 0x0F)) > 0x0F);
+    flags_reg.flags.C = (result >= 0x100);
+    return result16bit;
 }
 
 /**
@@ -236,7 +259,7 @@ uint8_t CPU::rotate_left_carry_with_flags(uint8_t val) {
     uint8_t old_C_flag = flags_reg.flags.C;
     flags_reg.flags.C = ((val & 0x80) != 0);
     val = (val << 1) | old_C_flag;
-    flags_reg.flags.Z = (regA == 0);
+    flags_reg.flags.Z = (val == 0);
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 0;
     return val;
@@ -248,7 +271,7 @@ uint8_t CPU::rotate_left_carry_with_flags(uint8_t val) {
  * Affected registers: None
  */
 uint8_t CPU::rotate_right_with_flags(uint8_t val) {
-    flags_reg.flags.C = (regA & 0x01);
+    flags_reg.flags.C = (val & 0x01);
     val = (val >> 1) | (flags_reg.flags.C << 7);
     flags_reg.flags.Z = (val == 0);
     flags_reg.flags.N = 0;
@@ -550,7 +573,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x18: // JR n; 2 bytes; 8 cycles
             {
-                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
                 regPC = (regPC + offset) & 0xFFFF;
             }
             operation_cycles = 8;
@@ -585,9 +608,9 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x20: // JR NZ,n; 2 bytes; 8 cycles
             {
-                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                int8_t signed_offset = unsigned_byte_to_signed(get_next_prog_byte());
                 if (flags_reg.flags.Z == 0) {
-                    regPC = (regPC + offset) & 0xFFFF;
+                    regPC = (regPC + signed_offset) & 0xFFFF;
                 }
             }
             operation_cycles = 8;
@@ -617,29 +640,31 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             regH = get_next_prog_byte();
             operation_cycles = 8;
             break;
-        // TODO: To update
-        // case 0x27: // DAA; 1 byte; 4 cycles
-        //     if ((regA & 0x0F) > 9 || flags_reg.flags.AC) {
-        //         // The C flag should be set to (regA + 0x06) > 0x100, so (regA > 0xA0)
-        //         flags_reg.flags.C |= (regA > 0xA0);
-        //         // The AC flag would be set to 1 if (regA & 0x0F) + 6 > 15, so (regA & 0x0F) > 9
-        //         flags_reg.flags.AC = ((regA & 0x0F) > 0x09);
-        //         regA = (regA + 0x06) & 0xFF;
-        //     } else {
-        //         flags_reg.flags.AC = 0;
-        //     }
-        //     if ((regA >> 4) > 9 || flags_reg.flags.C) {
-        //         flags_reg.flags.C  = 1;
-        //         regA = (regA + 0x60) & 0xFF;
-        //     }
-        //     calc_set_P_flag(regA);
-        //     calc_set_S_flag(regA);
-        //     calc_set_Z_flag(regA);
-        //     operation_cycles = 4;
-            // break;
+        case 0x27: // DAA; 1 byte; 4 cycles; Z,H,C flags
+            if (flags_reg.flags.N == 0) {
+                if (flags_reg.flags.C != 0 || (regA > 0x99)) {
+                    regA = (regA + 0x60) & 0xFF;
+                    flags_reg.flags.C = 1;
+                }
+                if (flags_reg.flags.H != 0 || ((regA & 0x0F) > 0x09)) {
+                    regA = (regA + 0x06) & 0xFF;
+                }
+            } else {
+                if (flags_reg.flags.C != 0) {
+                    regA = (regA - 0x60) & 0xFF;
+                }
+                if (flags_reg.flags.H != 0) {
+                    regA = (regA - 0x06) & 0xFF;
+                }
+            }
+
+            flags_reg.flags.Z = (regA == 0) ? 1 : 0;
+            flags_reg.flags.H = 0;
+            operation_cycles = 4;
+            break;
         case 0x28: // JR Z,n; 2 bytes; 8 cycles
             {
-                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
                 if (flags_reg.flags.Z == 1) {
                     regPC = (regPC + offset) & 0xFFFF;
                 }
@@ -678,7 +703,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x30: // JR NC,n; 2 bytes; 8 cycles
             {
-                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
                 if (flags_reg.flags.C == 0) {
                     regPC = (regPC + offset) & 0xFFFF;
                 }
@@ -718,7 +743,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x38: // JR C,n; 2 bytes; 8 cycles
             {
-                int8_t offset = static_cast<int8_t>(get_next_prog_byte());
+                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
                 if (flags_reg.flags.C == 1) {
                     regPC = (regPC + offset) & 0xFFFF;
                 }
@@ -1697,11 +1722,10 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     }
         //     operation_cycles = 17;
         //     break;
-        // // TODO: To update
-        // case 0xDE: // SBI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
-        //     regA = sub8bit_with_flags(regA, get_next_prog_byte(), flags_reg.flags.C);
-        //     operation_cycles = 7;
-        //     break;
+        case 0xDE: // SBC A,n; 2 bytes; 8 cycles; Z,N,H,C flags
+            regA = sub8bit_with_flags(regA, get_next_prog_byte(), flags_reg.flags.C);
+            operation_cycles = 8;
+            break;
         case 0xDF: // RST 18H; 1 byte; 32 cycles
             call_addr(0x0018);
             operation_cycles = 32;
@@ -1749,8 +1773,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xE8: // ADD SP,n; 2 bytes; 16 cycles; Z,N,H,C flags
-            regSP = add16bit_with_flags(regSP, (uint16_t)(get_next_prog_byte()));
-            flags_reg.flags.Z = 0;
+            regSP = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(get_next_prog_byte()), regSP);
             break;
         case 0xE9: // JP (HL); 1 byte; 4 cycles
             regPC = regHL; // TODO: Check if this is correct
@@ -1828,8 +1851,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xF8: // LDHL SP+n; 2 bytes; 12 cycles; Z,N,H,C flags
-            // TODO: Implement once 16 bit addition with flags is ready
-            // regHL = (regSP + get_next_prog_byte()) & 0xFFFF;
+            regHL = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(get_next_prog_byte()), regSP);
             operation_cycles = 12;
             break;
         case 0xF9: // LD SP,HL; 1 byte; 8 cycles

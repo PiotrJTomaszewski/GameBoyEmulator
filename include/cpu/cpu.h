@@ -29,12 +29,13 @@ private:
     flags_reg_t flags_reg;
     Bus &bus;
     IO &io;
-    bool is_halted, is_stopped, is_running;
+    bool is_halted, is_stopped;
     const long CLOCK_SPEED_HZ = 4194304;
     const uint16_t INTERRUPT_PC_LOOKUP[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
     uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
     uint16_t add16bit_with_flags(uint16_t val1, uint16_t val2);
+    uint16_t add_s8bit_to_u16bit_with_flags(int8_t val1, uint16_t val2);
     uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow);
     uint8_t inc8bit_with_flags(uint8_t val);
     uint8_t dec8bit_with_flags(uint8_t val);
