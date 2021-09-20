@@ -1798,8 +1798,8 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         case 0xF1: // POP AF; 1 byte; 12 cycles
             flags_reg.value = stack_pop();
             regA = stack_pop();
-            // TODO: Check expected behaviour of the unused flag bits
-            // flags_reg.flags._unused = 0;
+            // Unused flags should always be 0
+            flags_reg.flags._unused = 0;
             operation_cycles = 12;
             break;
         case 0xF2: // LD A,($FF00 + C); 1 byte; 8 cycles
