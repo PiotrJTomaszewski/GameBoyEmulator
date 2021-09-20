@@ -10,7 +10,7 @@
 
 IO io;
 Bus bus(io);
-CPU cpu(bus, io);
+CPU cpu(bus);
 PPU ppu(io, bus);
 GUI gui(cpu, bus, io, ppu);
 

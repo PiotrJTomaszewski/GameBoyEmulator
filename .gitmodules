@@ -8,3 +8,6 @@
 	path = lib/ImGuiFileDialog
 	url = https://github.com/aiekick/ImGuiFileDialog
 	branch = Lib_Only
+[submodule "tests/lib/doctest"]
+	path = tests/lib/doctest
+	url = https://github.com/onqtam/doctest
