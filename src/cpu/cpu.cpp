@@ -1571,7 +1571,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
                     int reg_id = op & 0b00000111;
                     uint8_t *reg_lookup[] = {&regB, &regC, &regD, &regE, &regH, &regL};
                     switch((op & 0b11000000) >> 6) {
-                        case 0x01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
+                        case 0b01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
                             if (reg_id == 7) {
                                 test_bit_with_flags(bit_no, regA);
                                 operation_cycles = 8;
@@ -1583,27 +1583,27 @@ int CPU::cpu_exec_op(uint8_t opcode) {
                                 operation_cycles = 8;
                             }
                             break;
-                        case 0x10: // RES b,r; 2 bytes; 8/16 cycles
+                        case 0b10: // RES b,r; 2 bytes; 8/16 cycles
                             if (reg_id == 7) {
-                                regA = regA & (~(1 << get_next_prog_byte()));
+                                regA = regA & (~(1 << bit_no));
                                 operation_cycles = 8;
                             } else if (reg_id == 6) {
-                                bus.write(regHL, bus.read(regHL) & (~(1 << get_next_prog_byte())));
+                                bus.write(regHL, bus.read(regHL) & (~(1 << bit_no)));
                                 operation_cycles = 16;
                             } else {
-                                *reg_lookup[reg_id] = *reg_lookup[reg_id] & (~(1 << get_next_prog_byte()));
+                                *reg_lookup[reg_id] = *reg_lookup[reg_id] & (~(1 << bit_no));
                                 operation_cycles = 8;
                             }
                             break;
-                        case 0x11: // SET b,r; 2 bytes; 8/16 cycles
+                        case 0b11: // SET b,r; 2 bytes; 8/16 cycles
                             if (reg_id == 7) {
-                                regA = regA | (1 << get_next_prog_byte());
+                                regA = regA | (1 << bit_no);
                                 operation_cycles = 8;
                             } else if (reg_id == 6) {
-                                bus.write(regHL, bus.read(regHL) | (1 << get_next_prog_byte()));
+                                bus.write(regHL, bus.read(regHL) | (1 << bit_no));
                                 operation_cycles = 16;
                             } else {
-                                *reg_lookup[reg_id] = *reg_lookup[reg_id] | (1 << get_next_prog_byte());
+                                *reg_lookup[reg_id] = *reg_lookup[reg_id] | (1 << bit_no);
                                 operation_cycles = 8;
                             }
                             break;
