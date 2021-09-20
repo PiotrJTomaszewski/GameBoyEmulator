@@ -1,7 +1,15 @@
 #include <fstream>
 #include "cartridge/cartridge.h"
 
-Cartridge::Cartridge(std::string path) {
+Cartridge::Cartridge() {
+
+}
+
+Cartridge::~Cartridge() {
+    delete[] data;
+}
+
+void Cartridge::load_file(std::string path) {
     int file_size;
     std::ifstream cart_file(path, std::ios::binary);
     file_size = static_cast<int>(cart_file.tellg());
@@ -12,10 +20,6 @@ Cartridge::Cartridge(std::string path) {
     data = new uint8_t[file_size];
     cart_file.read((char *)(data), file_size);
     cart_file.close();
-}
-
-Cartridge::~Cartridge() {
-    delete[] data;
 }
 
 void Cartridge::write(uint16_t address, uint8_t value) {

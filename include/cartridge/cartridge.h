@@ -6,8 +6,9 @@
 
 class Cartridge: public ReadWriteInterface {
 public:
-    Cartridge(std::string path);
+    Cartridge();
     ~Cartridge();
+    void load_file(std::string path);
     void write(uint16_t address, uint8_t value);
     uint8_t read(uint16_t address);
 

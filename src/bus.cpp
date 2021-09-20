@@ -12,7 +12,7 @@ Bus::Bus(IO &io): io{io} {
 }
 
 Bus::~Bus() {
-
+    remove_cartridge();
 }
 
 ReadWriteInterface *Bus::get_mem_access_handler(uint16_t address) {

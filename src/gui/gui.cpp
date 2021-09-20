@@ -82,7 +82,8 @@ void GUI::display() {
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            Cartridge *cart = new Cartridge(filePathName);
+            Cartridge *cart = new Cartridge();
+            cart->load_file(filePathName);
             bus.insert_cartridge(cart);
             diss.disassemble_code(*cart, 0x150, 0x7FFF);
             cpu.restart();
