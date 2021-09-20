@@ -24,7 +24,7 @@
 #define regSP_higher _regSP.pair.higher
 #define regSP_lower _regSP.pair.lower
 
-CPU::CPU(Bus &bus, IO &io): bus{bus}, io{io} {
+CPU::CPU(Bus &bus): bus{bus} {
     restart();
 }
 
@@ -55,13 +55,13 @@ void CPU::restart() {
 // TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
 int CPU::next_cycle() {
     int cycles = 0;
-    bool old_intrs_should_be_enabled = io.interrupts.get_intrs_should_be_enabled();
-    intr_type_t ready_interrupt = io.interrupts.get_ready_interrupt();
+    bool old_intrs_should_be_enabled = bus.io.interrupts.get_intrs_should_be_enabled();
+    intr_type_t ready_interrupt = bus.io.interrupts.get_ready_interrupt();
     if (ready_interrupt != NO_INTERRUPT) {
         cycles += 5; // Preparation for interrupt execution takes 5 cycles
         call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
-        io.interrupts.all_interrupts_disable();
-        io.interrupts.mark_used(ready_interrupt);
+        bus.io.interrupts.all_interrupts_disable();
+        bus.io.interrupts.mark_used(ready_interrupt);
         is_halted = false;
     }
     if (!(is_halted || is_stopped)) {
@@ -73,7 +73,7 @@ int CPU::next_cycle() {
         */
         cycles += 4;
     }
-    io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
+    bus.io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
     return cycles;
 }
 
@@ -451,13 +451,13 @@ inline void CPU::call_addr(uint16_t addr) {
 inline void CPU::stop() {
     is_stopped = true;
     // TODO: Stop the LCD
-    io.timer.stop_DIV();
+    bus.io.timer.stop_DIV();
 }
 
 inline void CPU::run_after_stop() {
     is_stopped = false;
     // TODO: Run the LCD
-    io.timer.run_DIV_after_stop();
+    bus.io.timer.run_DIV_after_stop();
 }
 
 /**
@@ -1697,7 +1697,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         case 0xD9: // RETI; 1 byte; 8 cycles
             regPC_lower = stack_pop();
             regPC_higher = stack_pop();
-            io.interrupts.all_interrupts_enable();
+            bus.io.interrupts.all_interrupts_enable();
             operation_cycles = 8;
             break;
         case 0xDA: // JP C,adr; 3 bytes; 12 cycles
@@ -1830,7 +1830,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 8;
             break;
         case 0xF3: // DI; 1 byte; 4 cycles
-            io.interrupts.all_interrupts_disable();
+            bus.io.interrupts.all_interrupts_disable();
             operation_cycles = 4;
             break;
         // // TODO: To update
@@ -1863,7 +1863,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
-            io.interrupts.order_all_intrs_enable();
+            bus.io.interrupts.order_all_intrs_enable();
             operation_cycles = 4;
             break;
         // // TODO: To update

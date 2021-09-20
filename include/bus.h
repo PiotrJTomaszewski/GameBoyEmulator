@@ -18,9 +18,9 @@ public:
     bool get_is_cart_inserted();
     void tmp_dump();
     void tmp_load();
+    IO &io;
 private:
     std::unique_ptr<Cartridge> cartridge;
-    IO &io;
     bool is_cart_inserted;
     uint8_t tmp_mem[0xFFFF+1];
     ReadWriteInterface *get_mem_access_handler(uint16_t address);
