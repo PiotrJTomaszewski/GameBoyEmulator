@@ -131,6 +131,7 @@ void PPU::render_current_screen_line() {
     int col, row;
     uint8_t *tile_map;
     int tile_addr;
+    int8_t signed_offset;
 
     Uint32 *surface_pixels = static_cast<Uint32 *>(screen_render.surface->pixels);
     Uint32 color_palette[] = {0xFF000000, 0xFF555555, 0xFFAAAAAA, 0xFFFFFFFF}; // TODO: Use the palette from register
@@ -145,7 +146,8 @@ void PPU::render_current_screen_line() {
         if (LCD_data->LCD_control.BG_and_window_tile_data_area == data_area_t::AREA_8000) {
             tile_addr = 0x8000 + 16 * tile_map[32 * tile_row + tile_col];
         } else {
-            tile_addr = 0x8800 + 16 * static_cast<int8_t>(tile_map[32 * tile_row + tile_col]);
+            memcpy(&signed_offset, tile_map + (32 * tile_row + tile_col), 1);
+            tile_addr = 0x8800 + 16 * signed_offset;
         }
         low_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no];
         high_byte = bus.tmp_mem[tile_addr + 2 * tile_line_no + 1];

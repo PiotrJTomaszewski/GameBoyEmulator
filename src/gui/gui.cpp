@@ -1,6 +1,7 @@
 #include <string>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 #include "ImGuiFileDialog.h"
 #include "gui/gui.h"
 
@@ -74,13 +75,16 @@ void GUI::display() {
     display_tile_data();
     display_screen();
     display_timer();
+    display_disassembly();
     mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
     mem_edit.DrawWindow("IO", &(io.data), 0x80);
     
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            bus.insert_cartridge(new Cartridge(filePathName));
+            Cartridge *cart = new Cartridge(filePathName);
+            bus.insert_cartridge(cart);
+            diss.disassemble_code(*cart, 0x150, 0x7FFF);
             cpu.restart();
         }
         ImGuiFileDialog::Instance()->Close();
@@ -212,5 +216,20 @@ void GUI::display_timer() {
     ImGui::Text("TMA: %02X", io.timer.get_TMA());
     ImGui::Text("Enabled: %d", io.timer.get_TAC_is_enabled());
     ImGui::Text("Divider: %d", io.timer.get_TAC_clock_divider());
+    ImGui::End();
+}
+
+void GUI::display_disassembly() {
+    ImGui::Begin("Disassembly", NULL);
+    ImGui::BeginChild("");
+    char buf[25];
+
+    auto disassembled = diss.get_disassembled_code();
+    for (auto const &instr: disassembled) {
+        sprintf(buf, "%04X %s", instr.address, instr.text);
+        ImGui::Selectable(buf, cpu.get_regPC() == instr.address);
+    }
+
+    ImGui::EndChild();
     ImGui::End();
 }

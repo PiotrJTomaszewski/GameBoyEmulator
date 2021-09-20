@@ -1,13 +1,20 @@
 #pragma once
 #include <cstdint>
 #include <vector>
-#include "bus.h"
+#include "read_write_interface.h"
 
 class Disassembler {
 public:
-    Disassembler(Bus &bus);
-     ~Disassembler();
+    Disassembler();
+    ~Disassembler();
+    void disassemble_code(ReadWriteInterface &src, uint16_t start_addr, uint16_t end_addr);
+    struct disassembled_t {
+        int address;
+        char text[20];
+    };
+    std::vector<disassembled_t> &get_disassembled_code();
+
 private:
-    Bus &bus;
-    int disassembly_instr(uint16_t mem_addr, char *buffer);
+    int disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, char *buffer);
+    std::vector<disassembled_t> disassembled;
 };

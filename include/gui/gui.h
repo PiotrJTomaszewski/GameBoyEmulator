@@ -10,6 +10,7 @@
 #include "bus.h"
 #include "io/io.h"
 #include "ppu.h"
+#include "disassembler.h"
 
 class GUI {
 public:
@@ -22,6 +23,7 @@ private:
     Bus &bus;
     IO &io;
     PPU &ppu;
+    Disassembler diss;
     SDL_Window *window;
     SDL_GLContext gl_context;
     ImGuiIO imgui_io;
@@ -34,4 +36,5 @@ private:
     void display_tile_data();
     void display_screen();
     void display_timer();
+    void display_disassembly();
 };
