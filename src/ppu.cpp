@@ -112,6 +112,7 @@ inline void PPU::enter_mode_hblank() {
 
 inline void PPU::enter_mode_vblank() {
     LCD_data->LCD_status.bits.mode_flag = mode_flag_t::IN_VBLANK;
+    increment_LY();
     io.interrupts.signal(intr_type_t::VBLANK);
     if (LCD_data->LCD_status.bits.vblank_STAT_intr_src != 0) {
         io.interrupts.signal(intr_type_t::LCD_STAT);

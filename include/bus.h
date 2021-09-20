@@ -3,8 +3,9 @@
 #include <memory>
 #include "cartridge/cartridge.h"
 #include "io/io.h"
+#include "read_write_interface.h"
 
-class Bus {
+class Bus: public ReadWriteInterface {
     friend class GUI; // TODO: Remove?
     friend class PPU;
 public:

@@ -33,7 +33,6 @@ void Bus::write(uint16_t address, uint8_t value) {
     } else {
         tmp_mem[address] = value;
     }
-    tmp_mem[address] = value;
 }
 
 uint8_t Bus::read(uint16_t address) {
