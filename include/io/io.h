@@ -2,6 +2,7 @@
 #include "read_write_interface.h"
 #include "io/interrupts.h"
 #include "io/timer.h"
+#include "io/joypad.h"
 
 class IO: public ReadWriteInterface {
 friend class PPU; // TODO: Remove friends
@@ -13,6 +14,7 @@ public:
     uint8_t read(uint16_t address);
     Interrupts interrupts;
     Timer timer;
+    Joypad joypad;
 private:
     uint8_t data[0x80];
 };

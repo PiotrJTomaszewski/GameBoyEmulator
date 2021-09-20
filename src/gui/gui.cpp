@@ -112,6 +112,66 @@ void GUI::handle_events() {
             should_close = true;
         if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
             should_close = true;
+        if (event.type == SDL_KEYDOWN) {
+            switch (event.key.keysym.sym) {
+                case SDLK_w:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_a:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_s:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_d:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_j:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_k:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_SPACE:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::PRESSED);
+                    break;
+                case SDLK_RETURN:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::PRESSED);
+                    break;
+                default:
+                    break;
+            }
+        }
+        if (event.type == SDL_KEYUP) {
+            switch (event.key.keysym.sym) {
+                case SDLK_w:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_a:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_s:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_d:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_j:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_k:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_SPACE:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                case SDLK_RETURN:
+                    io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::NOT_PRESSED);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }
 

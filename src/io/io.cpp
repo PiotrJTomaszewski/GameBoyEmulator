@@ -2,6 +2,7 @@
 
 IO::IO() {
     timer.attach_interrupts_handler(&interrupts);
+    joypad.attach_interrupts_handler(&interrupts);
 }
 
 IO::~IO() {
@@ -9,7 +10,10 @@ IO::~IO() {
 }
 
 void IO::write(uint16_t address, uint8_t value) {
-    if (address == 0xFF0F) { // Interrupt Flag
+    // TODO: Make all IO's use references to shared memory instead of this
+    if (address == 0xFF00) { // Joypad
+        joypad.set_data_reg_val(value);
+    } else if (address == 0xFF0F) { // Interrupt Flag
         interrupts.interrupt_flag.value = value;
     } else if (address == 0xFFFF) { // Interrupt Enable
         interrupts.interrupt_enable.value = value;
@@ -22,7 +26,9 @@ void IO::write(uint16_t address, uint8_t value) {
 
 uint8_t IO::read(uint16_t address) {
     uint8_t value = 0;
-    if (address == 0xFF0F) { // Interrupt Flag
+    if (address == 0xFF00) {
+        value = joypad.get_data_reg_val();
+    } else if (address == 0xFF0F) { // Interrupt Flag
         value = interrupts.interrupt_flag.value;
     } else if (address == 0xFFFF) { // Interrupt Enable
         value = interrupts.interrupt_enable.value;
