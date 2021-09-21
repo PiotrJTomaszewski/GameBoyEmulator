@@ -9,7 +9,12 @@ file(GLOB IMGUI_SRC ${IMGUI_INCLUDE_DIR}/*.cpp)
 file(GLOB IMGUI_HDRS ${IMGUI_INCLUDE_DIR}/*h)
 set(IMGUI_IMPL_DIR ${IMGUI_INCLUDE_DIR}/backends)
 
-add_library(imgui STATIC ${IMGUI_SRC} ${IMGUI_IMPL_DIR}/imgui_impl_sdl.cpp ${IMGUI_IMPL_DIR}/imgui_impl_opengl3.cpp)
+add_library(imgui STATIC
+    ${IMGUI_SRC}
+    ${IMGUI_IMPL_DIR}/imgui_impl_sdl.cpp
+    ${IMGUI_IMPL_DIR}/imgui_impl_opengl3.cpp
+    lib/ImGuiFileDialog/ImGuiFileDialog.cpp
+)
 
 add_definitions(-DIMGUI_IMPL_OPENGL_LOADER_GLAD)
 
@@ -18,9 +23,11 @@ include_directories(
     ${IMGUI_IMPL_DIR}
     ${OPENGL_INCLUDE_DIR}
     ${SDL2_INCLUDE_DIRS}
+    lib/imgui_club/imgui_memory_editor
+    lib/ImGuiFileDialog
     )
 
-target_link_libraries(imgui ${OPENGL_LIBRARIES} ${SDL2_LIBRARIES})
+target_link_libraries(imgui ${OPENGL_LIBRARIES} ${SDL2_LIBRARIES} dl)
 
 set_target_properties(imgui PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(imgui PROPERTIES FOLDER lib)
