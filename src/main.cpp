@@ -7,10 +7,9 @@
 #include "cartridge/cartridge.h"
 #include "io/io.h"
 
-IO io;
-Bus bus(io);
+Bus bus;
 CPU cpu(bus);
-GUI gui(cpu, bus, io);
+GUI gui(cpu, bus);
 
 int main(int argc, char *argv[]) {
     // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
@@ -25,7 +24,7 @@ int main(int argc, char *argv[]) {
             auto start = std::chrono::high_resolution_clock::now();
             while (cycles_left_in_step > 0) {
                 cpu_cycles = cpu.next_cycle();
-                io.timer.tick(cpu_cycles);
+                bus.io.timer.tick(cpu_cycles);
                 // ppu.tmp_tick(cpu_cycles);
                 cycles_left_in_step -= cpu_cycles;
             }

@@ -9,7 +9,7 @@ class Bus: public ReadWriteInterface {
     friend class GUI; // TODO: Remove?
     friend class PPU;
 public:
-    Bus(IO &io);
+    Bus();
     Bus(const Bus&) = delete;
     ~Bus();
     Bus& operator=(const Bus&) = delete;
@@ -18,9 +18,9 @@ public:
     void insert_cartridge(Cartridge* cartridge);
     void remove_cartridge();
     bool get_is_cart_inserted();
-    void tmp_dump();
-    void tmp_load();
-    IO &io;
+    // void tmp_dump();
+    // void tmp_load();
+    IO io;
 private:
     std::unique_ptr<Cartridge> cartridge;
     bool is_cart_inserted;

@@ -5,7 +5,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus, IO &io): cpu(cpu), bus(bus), io(io) {
+GUI::GUI(CPU &cpu, Bus &bus): cpu(cpu), bus(bus) {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -77,7 +77,7 @@ void GUI::display() {
     display_timer();
     display_disassembly();
     mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
-    mem_edit.DrawWindow("IO", &(io.data), 0x80);
+    mem_edit.DrawWindow("IO", &(bus.io.data), 0x80);
     
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
@@ -116,28 +116,28 @@ void GUI::handle_events() {
         if (event.type == SDL_KEYDOWN) {
             switch (event.key.keysym.sym) {
                 case SDLK_w:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_a:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_s:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_d:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_j:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_k:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_SPACE:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::PRESSED);
                     break;
                 case SDLK_RETURN:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::PRESSED);
                     break;
                 default:
                     break;
@@ -146,28 +146,28 @@ void GUI::handle_events() {
         if (event.type == SDL_KEYUP) {
             switch (event.key.keysym.sym) {
                 case SDLK_w:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::UP, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_a:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::LEFT, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_s:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::DOWN, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_d:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::RIGHT, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_j:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::A, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_k:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::B, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_SPACE:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::SELECT, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 case SDLK_RETURN:
-                    io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::NOT_PRESSED);
+                    bus.io.joypad.btn_change_state(Joypad::btn_type_t::START, Joypad::btn_state_t::NOT_PRESSED);
                     break;
                 default:
                     break;
@@ -181,9 +181,6 @@ void GUI::display_main_menu() {
         if (ImGui::BeginMenu("Cartridge")) {
             if (ImGui::MenuItem("Open..", "Ctrl+O")) {
                 ImGuiFileDialog::Instance()->OpenDialog("ChCartKey", "Choose a Cartridge file", ".gb", ".");
-            }
-            if (ImGui::MenuItem("Dump")) {
-                bus.tmp_dump();
             }
             ImGui::EndMenu();
         }
@@ -272,11 +269,11 @@ void GUI::display_screen() {
 
 void GUI::display_timer() {
     ImGui::Begin("Timer", NULL);
-    ImGui::Text("DIV: 0x%02X", io.timer.get_DIV());
-    ImGui::Text("TIMA: 0x%02X", io.timer.get_TIMA());
-    ImGui::Text("TMA: %02X", io.timer.get_TMA());
-    ImGui::Text("Enabled: %d", io.timer.get_TAC_is_enabled());
-    ImGui::Text("Divider: %d", io.timer.get_TAC_clock_divider());
+    ImGui::Text("DIV: 0x%02X", bus.io.timer.get_DIV());
+    ImGui::Text("TIMA: 0x%02X", bus.io.timer.get_TIMA());
+    ImGui::Text("TMA: %02X", bus.io.timer.get_TMA());
+    ImGui::Text("Enabled: %d", bus.io.timer.get_TAC_is_enabled());
+    ImGui::Text("Divider: %d", bus.io.timer.get_TAC_clock_divider());
     ImGui::End();
 }
 

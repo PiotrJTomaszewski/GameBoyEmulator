@@ -13,14 +13,13 @@
 
 class GUI {
 public:
-    GUI(CPU &cpu, Bus &bus, IO &io);
+    GUI(CPU &cpu, Bus &bus);
     ~GUI();
     void display();
     bool get_should_close();
 private:
     CPU &cpu;
     Bus &bus;
-    IO &io;
     Disassembler diss;
     SDL_Window *window;
     SDL_GLContext gl_context;
