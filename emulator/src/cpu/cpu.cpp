@@ -51,7 +51,7 @@ void CPU::restart() {
  * Executes a signle machine cylce on the CPU
  * Returns the number of clock cycles this step took
  */
-int CPU::next_cycle() {
+int CPU::exec_next_instr() {
     int cycles = 0;
     bool old_intrs_should_be_enabled = bus.io.interrupts.get_intrs_should_be_enabled();
     intr_type_t ready_interrupt = bus.io.interrupts.get_ready_interrupt();

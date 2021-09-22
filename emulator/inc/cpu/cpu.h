@@ -20,9 +20,10 @@ public:
     uint16_t get_regSP() {return _regSP.value;};
     flags_reg_t get_flags_reg() {return flags_reg;}
     void restart();
-    int next_cycle();
+    int exec_next_instr();
     long get_clock_speed_Hz();
-private:
+
+protected:
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;

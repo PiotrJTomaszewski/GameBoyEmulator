@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         if (bus.get_is_cart_inserted()) { // TODO: Add CPU execution controller in GUI
             auto start = std::chrono::high_resolution_clock::now();
             while (cycles_left_in_step > 0) {
-                cpu_cycles = cpu.next_cycle();
+                cpu_cycles = cpu.exec_next_instr();
                 bus.io.timer.tick(cpu_cycles);
                 // ppu.tmp_tick(cpu_cycles);
                 cycles_left_in_step -= cpu_cycles;
