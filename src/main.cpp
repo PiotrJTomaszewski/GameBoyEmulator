@@ -3,19 +3,16 @@
 #include <iostream>
 #include "bus.h"
 #include "cpu/cpu.h"
-#include "gui/gui.h"
+#include "gui.h"
 #include "cartridge/cartridge.h"
 #include "io/io.h"
-#include "ppu.h"
 
 IO io;
 Bus bus(io);
 CPU cpu(bus);
-PPU ppu(io, bus);
-GUI gui(cpu, bus, io, ppu);
+GUI gui(cpu, bus, io);
 
 int main(int argc, char *argv[]) {
-
     // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
@@ -29,7 +26,7 @@ int main(int argc, char *argv[]) {
             while (cycles_left_in_step > 0) {
                 cpu_cycles = cpu.next_cycle();
                 io.timer.tick(cpu_cycles);
-                ppu.tmp_tick(cpu_cycles);
+                // ppu.tmp_tick(cpu_cycles);
                 cycles_left_in_step -= cpu_cycles;
             }
             cycles_left_in_step = cpu_cycles_in_one_step;
@@ -39,8 +36,8 @@ int main(int argc, char *argv[]) {
                 std::this_thread::sleep_for(std::chrono::microseconds(step_duration_micros) - duration);
             }
         }
-        ppu.render_tile_data();
-        ppu.render_screen();
+        // ppu.render_tile_data();
+        // ppu.render_screen();
         gui.display();
     }
 

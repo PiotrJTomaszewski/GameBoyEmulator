@@ -3,9 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 #include "ImGuiFileDialog.h"
-#include "gui/gui.h"
+#include "gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus, IO &io, PPU &ppu): cpu{cpu}, bus{bus}, io{io}, ppu{ppu} {
+GUI::GUI(CPU &cpu, Bus &bus, IO &io): cpu(cpu), bus(bus), io(io) {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -257,17 +257,17 @@ void GUI::display_cpu() {
 }
 
 void GUI::display_tile_data() {
-    ImGui::Begin("Tile Data", NULL);
-    PPU::render_t &render = ppu.get_tile_data_render();
-    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
-    ImGui::End();
+    // ImGui::Begin("Tile Data", NULL);
+    // PPU::render_t &render = ppu.get_tile_data_render();
+    // ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    // ImGui::End();
 }
 
 void GUI::display_screen() {
-    ImGui::Begin("Screen", NULL);
-    PPU::render_t &render = ppu.get_screen_render();
-    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
-    ImGui::End();
+    // ImGui::Begin("Screen", NULL);
+    // PPU::render_t &render = ppu.get_screen_render();
+    // ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    // ImGui::End();
 }
 
 void GUI::display_timer() {

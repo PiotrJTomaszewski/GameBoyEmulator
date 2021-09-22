@@ -51,8 +51,6 @@ void CPU::restart() {
  * Executes a signle machine cylce on the CPU
  * Returns the number of clock cycles this step took
  */
-// TODO: Update
-// TODO: While CPU executes an operation it fetches the next one - emulate that. Also, update the cycle count - currently it doesn't reflect that behaviour
 int CPU::next_cycle() {
     int cycles = 0;
     bool old_intrs_should_be_enabled = bus.io.interrupts.get_intrs_should_be_enabled();

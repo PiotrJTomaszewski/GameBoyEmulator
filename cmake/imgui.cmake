@@ -1,7 +1,6 @@
-# Based on https://github.com/shxy0/SDLImGui
+cmake_policy(SET CMP0072 NEW)
 find_package(OpenGL REQUIRED)
 find_package(SDL2 REQUIRED)
-find_package(X11 REQUIRED)
 
 # ImGUI
 set(IMGUI_INCLUDE_DIR lib/imgui)
@@ -28,6 +27,7 @@ include_directories(
     )
 
 target_link_libraries(imgui ${OPENGL_LIBRARIES} ${SDL2_LIBRARIES} dl)
+target_compile_options(imgui PRIVATE "-w")
 
 set_target_properties(imgui PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(imgui PROPERTIES FOLDER lib)

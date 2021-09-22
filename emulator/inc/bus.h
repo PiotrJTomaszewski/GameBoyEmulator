@@ -10,7 +10,9 @@ class Bus: public ReadWriteInterface {
     friend class PPU;
 public:
     Bus(IO &io);
+    Bus(const Bus&) = delete;
     ~Bus();
+    Bus& operator=(const Bus&) = delete;
     void write(uint16_t address, uint8_t value);
     uint8_t read(uint16_t address);
     void insert_cartridge(Cartridge* cartridge);

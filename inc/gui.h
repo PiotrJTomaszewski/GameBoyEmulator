@@ -9,12 +9,11 @@
 #include "cpu/cpu.h"
 #include "bus.h"
 #include "io/io.h"
-#include "ppu.h"
 #include "disassembler.h"
 
 class GUI {
 public:
-    GUI(CPU &cpu, Bus &bus, IO &io, PPU &ppu);
+    GUI(CPU &cpu, Bus &bus, IO &io);
     ~GUI();
     void display();
     bool get_should_close();
@@ -22,7 +21,6 @@ private:
     CPU &cpu;
     Bus &bus;
     IO &io;
-    PPU &ppu;
     Disassembler diss;
     SDL_Window *window;
     SDL_GLContext gl_context;
