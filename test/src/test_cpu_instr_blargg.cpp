@@ -6,7 +6,7 @@
 #include "mock_bus.h"
 #include "wrappers/cpu_wrapper.h"
 
-const std::string BLARGG_CPU_TESTS_DIR = "/home/pjtom/Documents/GameBoyEmulator/test/test_roms/gb-test-roms/cpu_instrs/individual/";
+const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_instrs/individual/";
 
 #define BLARGG_CPU_TEST(file_name, expected_new_line_count) \
     bool test_running = true; \
