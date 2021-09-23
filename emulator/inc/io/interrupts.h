@@ -27,21 +27,23 @@ friend class IO;
 public:
     Interrupts();
     ~Interrupts();
+    bool is_interrupt_pending();
     intr_type_t get_ready_interrupt();
     /**
      * Interrupts will be enabled after the next instruction executes
      * Because EI instruction has delay of one cycle
      */
     void order_all_intrs_enable();
-    void all_interrupts_enable();
-    void all_interrupts_disable();
-    void intrs_update_state(bool state_before_last_opcode);
-    bool get_intrs_should_be_enabled();
+    void enable_IME_flag();
+    void disable_IME_flag();
+    void IME_flag_update_state(bool state_before_last_opcode);
+    bool get_is_IME_flag_enabling_scheduled();
     void signal(intr_type_t type);
     void mark_used(intr_type_t type);
 
 private:
     intr_reg_t interrupt_flag;
     intr_reg_t interrupt_enable;
-    bool intrs_should_be_enabled;
+    bool IME_flag; // Interrupt Master Enable
+    bool is_IME_flag_enabling_scheduled;
 };

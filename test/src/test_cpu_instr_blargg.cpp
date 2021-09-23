@@ -10,18 +10,21 @@ const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_
 
 #define BLARGG_CPU_TEST(file_name, expected_new_line_count) \
     bool test_running = true; \
-    unsigned long long cycles = 0; \
+    unsigned long long total_cycles = 0; \
+    unsigned cycles = 0; \
     MockBus bus(true); \
     CPUWrapper cpu(bus); \
     bus.load_file(BLARGG_CPU_TESTS_DIR + file_name); \
     bool timeout_occured = false; \
     std::cout << "-------- " << file_name << " --------" << std::endl; \
     while (test_running) { \
-        cycles += cpu.exec_next_instr(); \
+        cycles = cpu.exec_next_instr(); \
+        bus.io.timer.tick(cycles); \
+        total_cycles += cycles; \
         if (bus.get_serial_data_newline_count() >= expected_new_line_count) { \
             test_running = false; \
         } \
-        if (cycles > 1e9) { \
+        if (total_cycles > 1e9) { \
             std::cout << "Timeout" << std::endl; \
             timeout_occured = true; \
             test_running = false; \
@@ -37,7 +40,7 @@ TEST_SUITE("Blargg CPU Instrucions Tests") {
         BLARGG_CPU_TEST("01-special.gb", 4);
     }
     TEST_CASE("02-interrupts.gb") {
-        BLARGG_CPU_TEST("02-interrupts.gb", 4);
+        BLARGG_CPU_TEST("02-interrupts.gb", 6);
     }
     TEST_CASE("03-op sp,hl.gb") {
         BLARGG_CPU_TEST("03-op sp,hl.gb", 4);

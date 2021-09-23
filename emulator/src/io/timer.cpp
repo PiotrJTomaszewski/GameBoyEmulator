@@ -5,6 +5,11 @@ Timer::Timer() {
     DIV_CPU_clock_counter = 0;
     TIMA_CPU_clock_counter = 0;
     is_DIV_stopped = false;
+    // Set the initial values // TODO: Add reset function
+    timer_data.DIV = 0xAB;
+    timer_data.TIMA = 0x00;
+    timer_data.TMA = 0x00;
+    timer_data.TAC.value = 0xF8;
 }
 
 Timer::~Timer() {

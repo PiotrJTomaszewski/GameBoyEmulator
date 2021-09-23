@@ -21,18 +21,29 @@ MockBus::~MockBus() {
 }
 
 void MockBus::write(uint16_t address, uint8_t value) {
-    data[address] = value;
+    if ((address >= 0xFF00 && address <= 0xFF7F) || address == 0xFFFF) { // IO Registers
+        io.write(address, value);
+    } else {
+        data[address] = value;
+    }
+
     if (log_serial && address == 0xFF02 && value == 0x81) { // Starting serial transfer
-        serial_data[serial_data_last_char_index++] = data[0xFF01]; // Storing value of serial transfer data register
-        data[0xFF02] = 0x01; // Marking byte as recieved
-        if (data[0xFF01] == '\n') {
+        serial_data[serial_data_last_char_index++] = io.read(0xFF01); // Storing value of serial transfer data register
+        io.write(0xFF02, 0x01); // Marking byte as recieved
+        if (io.read(0xFF01) == '\n') {
             ++serial_data_newline_count;
         }
     }
 }
 
 uint8_t MockBus::read(uint16_t address) {
-    return data[address];
+    uint8_t value;
+    if ((address >= 0xFF00 && address <= 0xFF7F) || address == 0xFFFF) { // IO Registers
+        value = io.read(address);
+    } else {
+        value = data[address];
+    }
+    return value;
 }
 
 

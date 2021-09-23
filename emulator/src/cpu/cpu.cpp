@@ -78,15 +78,22 @@ void CPU::restart() {
  */
 int CPU::exec_next_instr() {
     int cycles = 0;
-    bool old_intrs_should_be_enabled = bus.io.interrupts.get_intrs_should_be_enabled();
+    if (is_halted && bus.io.interrupts.is_interrupt_pending()) {
+        is_halted = false;
+    }
+
+    bool old_IME_schedule = bus.io.interrupts.get_is_IME_flag_enabling_scheduled();
     intr_type_t ready_interrupt = bus.io.interrupts.get_ready_interrupt();
     if (ready_interrupt != NO_INTERRUPT) {
         cycles += 5; // Preparation for interrupt execution takes 5 cycles
         call_addr(INTERRUPT_PC_LOOKUP[ready_interrupt]);
-        bus.io.interrupts.all_interrupts_disable();
+        bus.io.interrupts.disable_IME_flag();
         bus.io.interrupts.mark_used(ready_interrupt);
-        is_halted = false;
+        if (ready_interrupt == intr_type_t::JOYPAD) {
+            run_after_stop();
+        }
     }
+
     if (!(is_halted || is_stopped)) {
         cycles += cpu_exec_op(fetch_next_instruction());
     } else {
@@ -96,7 +103,7 @@ int CPU::exec_next_instr() {
         */
         cycles += 4;
     }
-    bus.io.interrupts.intrs_update_state(old_intrs_should_be_enabled);
+    bus.io.interrupts.IME_flag_update_state(old_IME_schedule);
     return cycles;
 }
 
@@ -555,7 +562,6 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 4;
             break;
         case 0x10: // STOP; 2 bytes; 4 cycles
-            // TODO: Halt the LCD
             stop();
             operation_cycles = 4;
             break;
@@ -1694,7 +1700,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
         case 0xD9: // RETI; 1 byte; 8 cycles
             regPC_lower = stack_pop();
             regPC_higher = stack_pop();
-            bus.io.interrupts.all_interrupts_enable();
+            bus.io.interrupts.enable_IME_flag();
             operation_cycles = 8;
             break;
         case 0xDA: // JP C,adr; 3 bytes; 12 cycles
@@ -1827,7 +1833,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 8;
             break;
         case 0xF3: // DI; 1 byte; 4 cycles
-            bus.io.interrupts.all_interrupts_disable();
+            bus.io.interrupts.disable_IME_flag();
             operation_cycles = 4;
             break;
         // // TODO: To update
