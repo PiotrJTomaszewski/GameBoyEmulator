@@ -40,7 +40,7 @@ TEST_SUITE("Blargg CPU Instrucions Tests") {
         BLARGG_CPU_TEST("01-special.gb", 4);
     }
     TEST_CASE("02-interrupts.gb") {
-        BLARGG_CPU_TEST("02-interrupts.gb", 6);
+        BLARGG_CPU_TEST("02-interrupts.gb", 4);
     }
     TEST_CASE("03-op sp,hl.gb") {
         BLARGG_CPU_TEST("03-op sp,hl.gb", 4);

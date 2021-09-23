@@ -36,6 +36,7 @@ public:
     void order_all_intrs_enable();
     void enable_IME_flag();
     void disable_IME_flag();
+    bool debug_get_IME_flag();
     void IME_flag_update_state(bool state_before_last_opcode);
     bool get_is_IME_flag_enabling_scheduled();
     void signal(intr_type_t type);

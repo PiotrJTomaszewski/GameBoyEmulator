@@ -8,6 +8,10 @@ CPUWrapper::~CPUWrapper() {
 
 }
 
+void CPUWrapper::exec_explicit_instr(instruction_t instr) {
+    cpu_exec_op(instr);
+}
+
 void CPUWrapper::set_regA(uint8_t value) {
     regA = value;
 }

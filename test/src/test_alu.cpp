@@ -79,13 +79,14 @@ TEST_SUITE("ALU Tests") {
     TEST_CASE("AND") {
         MockBus mock_bus;
         CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
 
         SUBCASE("0x15 & 0x53; A&B") {
             cpu.set_regA(0x15);
             cpu.set_regB(0x53);
             // AND B
-            mock_bus.force_write(cpu.get_regPC(), 0xA0);
-            cpu.exec_next_instr();
+            instr.fields.operation = 0xA0;
+            cpu.exec_explicit_instr(instr);
             CHECK(cpu.get_regA() == 0x11);
             CHECK(cpu.get_flag_Z() == 0);
             CHECK(cpu.get_flag_N() == 0);
@@ -96,10 +97,10 @@ TEST_SUITE("ALU Tests") {
         SUBCASE("0x59 & 0xA6 - Z flag; A&(HL)") {
             cpu.set_regA(0x59);            
             // AND (HL)
-            mock_bus.force_write(cpu.get_regPC(), 0xA6);
+            instr.fields.operation = 0xA6;
             cpu.set_regHL(0x0010);
             mock_bus.force_write(0x0010, 0xA6);
-            cpu.exec_next_instr();
+            cpu.exec_explicit_instr(instr);
             CHECK(cpu.get_regA() == 0x00);
             CHECK(cpu.get_flag_Z() == 1);
             CHECK(cpu.get_flag_N() == 0);
@@ -111,13 +112,14 @@ TEST_SUITE("ALU Tests") {
     TEST_CASE("SUB") {
         MockBus mock_bus;
         CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
 
         SUBCASE("0xD6 - 0xDE") {
             cpu.set_regA(0xD6);
             cpu.set_regB(0xDE);
             // SUB B
-            mock_bus.force_write(cpu.get_regPC(), 0x90);
-            cpu.exec_next_instr();
+            instr.fields.operation = 0x90;
+            cpu.exec_explicit_instr(instr);
             CHECK(cpu.get_regA() == 0xF8);
             CHECK(cpu.get_flag_Z() == 0);
             CHECK(cpu.get_flag_N() == 1);
@@ -129,12 +131,13 @@ TEST_SUITE("ALU Tests") {
     TEST_CASE("RLCA") {
         MockBus mock_bus;
         CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
 
         SUBCASE("0x80") {
             cpu.set_regA(0x80);
             // RLCA
-            mock_bus.force_write(cpu.get_regPC(), 0x07);
-            cpu.exec_next_instr();
+            instr.fields.operation = 0x07;
+            cpu.exec_explicit_instr(instr);
             CHECK(cpu.get_regA() == 0x01);
             CHECK(cpu.get_flag_Z() == 0);
             CHECK(cpu.get_flag_N() == 0);
@@ -145,8 +148,8 @@ TEST_SUITE("ALU Tests") {
         SUBCASE("0x17") {
             cpu.set_regA(0x17);
             // RLCA
-            mock_bus.force_write(cpu.get_regPC(), 0x07);
-            cpu.exec_next_instr();
+            instr.fields.operation = 0x07;
+            cpu.exec_explicit_instr(instr);
             CHECK(cpu.get_regA() == 0x2E);
             CHECK(cpu.get_flag_Z() == 0);
             CHECK(cpu.get_flag_N() == 0);

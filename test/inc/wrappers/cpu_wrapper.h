@@ -8,6 +8,7 @@ class CPUWrapper: public CPU {
 public:
     CPUWrapper(Bus &bus);
     ~CPUWrapper();
+    void exec_explicit_instr(instruction_t instr);
     void set_regA(uint8_t value);
     void set_regB(uint8_t value);
     void set_regC(uint8_t value);

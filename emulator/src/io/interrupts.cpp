@@ -38,6 +38,10 @@ void Interrupts::disable_IME_flag() {
     IME_flag = false;
 }
 
+bool Interrupts::debug_get_IME_flag() {
+    return IME_flag;
+}
+
 void Interrupts::IME_flag_update_state(bool state_before_last_opcode) {
     if (state_before_last_opcode) {
         IME_flag = true;

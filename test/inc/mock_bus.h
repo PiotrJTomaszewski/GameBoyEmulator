@@ -14,7 +14,6 @@ public:
     void load_file(std::string path);
     char *get_serial_data_log();
     int get_serial_data_newline_count();
-    IO io;
 
 private:
     uint8_t data[0xFFFF+1];
