@@ -139,9 +139,8 @@ uint8_t CPU::sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow) {
     uint8_t result8bit = result & 0xFF;
     flags_reg.flags.Z = (result8bit == 0);
     flags_reg.flags.N = 1;
-    // TODO: Check if H and C flags are set correctly
-    flags_reg.flags.H = (((val1 & 0x0F) + (~val2 & 0x0F) + (borrow^1)) > 0x0F);
-    flags_reg.flags.C = ((val2+borrow) > val1); 
+    flags_reg.flags.H = (val1 & 0x0F) < ((val2 & 0xF) + borrow);
+    flags_reg.flags.C = (result < 0); 
     return result8bit;
 }
 
@@ -167,14 +166,7 @@ uint8_t CPU::dec8bit_with_flags(uint8_t val) {
     uint8_t result = (val - 1) & 0xFF;
     flags_reg.flags.Z = (result == 0);
     flags_reg.flags.N = 1;
-    // TODO: Check if H flag calculation is correct
-    /* The whole calculation here should look like the one in 'sub8bit_with_flags'
-     * but because 'val2' is always equal 1 and 'borrow' is always equal 0
-     * we can write ((val1 & 0x0F) + (~1 & 0x0F) + (0^1)) > 0x0F
-     * and the two latter values are equal: 0x0E + 1 = 0x0F.
-     * So in the end it can be simplified to (val & 0x0F) + 0x0F > 0x0F
-    */
-    flags_reg.flags.H = ((val & 0x0F) > 0);
+    flags_reg.flags.H = ((val & 0x0F) < 1);
     return result;
 }
 
@@ -1879,7 +1871,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 17;
         //     break;
         case 0xFE: // CMP n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sub8bit_with_flags(regA, get_next_prog_byte(), 0); // TODO: Check what's wrong with H flag
+            sub8bit_with_flags(regA, get_next_prog_byte(), 0);
             operation_cycles = 8;
             break;
         case 0xFF: // RST 38H; 1 byte; 32 cycles
