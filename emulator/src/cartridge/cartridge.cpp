@@ -1,4 +1,5 @@
 #include <fstream>
+#include <stdexcept>
 #include "cartridge/cartridge.h"
 
 Cartridge::Cartridge() {
@@ -12,6 +13,9 @@ Cartridge::~Cartridge() {
 void Cartridge::load_file(std::string path) {
     int file_size;
     std::ifstream cart_file(path, std::ios::binary);
+    if (!cart_file.good()) {
+        throw std::runtime_error("Cannot open file: " + path);
+    }
     file_size = static_cast<int>(cart_file.tellg());
     cart_file.seekg(0, std::ios::end);
     file_size = static_cast<int>(cart_file.tellg()) - file_size;
