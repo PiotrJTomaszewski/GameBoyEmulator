@@ -11,3 +11,6 @@
 [submodule "test/lib/doctest"]
 	path = test/lib/doctest
 	url = https://github.com/onqtam/doctest
+[submodule "test/test_roms/gb-test-roms"]
+	path = test/test_roms/gb-test-roms
+	url = https://github.com/retrio/gb-test-roms
