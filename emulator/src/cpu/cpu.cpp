@@ -2,11 +2,6 @@
 #include "bus.h"
 #include "cpu/cpu.h"
 
-/**
- * Converts two 8bit numbers to one 16bit number
- */
-#define join_bytes(higher, lower) ((higher << 8) | lower)
-
 // Macros for easier work with 16 bit registers
 #define regBC _regBC.value
 #define regB  _regBC.pair.higher
@@ -23,6 +18,36 @@
 #define regSP _regSP.value
 #define regSP_higher _regSP.pair.higher
 #define regSP_lower _regSP.pair.lower
+
+/**
+ * Converts two 8bit numbers to one 16bit number
+ */
+#define join_bytes(higher, lower) ((higher << 8) | lower)
+
+/**
+ * Converts two 8bit instruction parameters to one 16bit number
+ */
+#define param16bit(instruction) ((instruction.fields.param2 << 8) | instruction.fields.param1)
+
+static const int INSTRUCTION_LENGTH_LOOKUP[256] = {
+    //        0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+    /* 0x0 */ 1, 3, 1, 1, 1, 1, 2, 1, 3, 1, 1, 1, 1, 1, 2, 1,
+    /* 0x1 */ 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+    /* 0x2 */ 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+    /* 0x3 */ 2, 3, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 2, 1,
+    /* 0x4 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0x5 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0x6 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0x7 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0x8 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0x9 */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0xA */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0xB */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    /* 0xC */ 1, 1, 3, 3, 3, 1, 2, 1, 1, 1, 3, 2, 3, 3, 2, 1,
+    /* 0xD */ 1, 1, 3, 1, 3, 1, 2, 1, 1, 1, 3, 1, 3, 1, 2, 1,
+    /* 0xE */ 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
+    /* 0xF */ 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
+};
 
 CPU::CPU(Bus &bus): bus{bus} {
     restart();
@@ -63,7 +88,7 @@ int CPU::exec_next_instr() {
         is_halted = false;
     }
     if (!(is_halted || is_stopped)) {
-        cycles += cpu_exec_op(get_next_prog_byte());
+        cycles += cpu_exec_op(fetch_next_instruction());
     } else {
         /* The processor is usually emulated in batches
         * so to avoid being stuck in an infinite loop
@@ -395,15 +420,12 @@ inline int CPU::cond_return(bool condition) {
 
 /**
  * Sets the new PC value (jump) if the condition is met
- * Returns the number of clock cycles this operation takes
  * Affected flags: None
  * Affected registers: PC
  */
-inline void CPU::cond_jump(bool condition) {
+inline void CPU::cond_jump(bool condition, uint16_t address) {
     if (condition) {
-        regPC = get_next_2_prog_bytes();
-    } else {
-        regPC += 2;
+        regPC = address;
     }
 }
 
@@ -414,15 +436,13 @@ inline void CPU::cond_jump(bool condition) {
  * Affected registers: PC, SP
  */
 // TODO: Update
-int CPU::cond_call(bool condition) {
+int CPU::cond_call(bool condition, uint16_t address) {
     if (condition) {
-        uint16_t newPC = get_next_2_prog_bytes();
         stack_push(regPC_higher);
         stack_push(regPC_lower);
-        regPC = newPC;
+        regPC = address;
         return 17;
     } else {
-        regPC += 2;
         return 11;
     }
 }
@@ -432,10 +452,10 @@ int CPU::cond_call(bool condition) {
  * Affected flags: None
  * Affected registers: PC, SP
  */
-inline void CPU::call_addr(uint16_t addr) {
+inline void CPU::call_addr(uint16_t address) {
     stack_push(regPC_higher);
     stack_push(regPC_lower);
-    regPC = addr;
+    regPC = address;
 }
 
 inline void CPU::stop() {
@@ -451,18 +471,31 @@ inline void CPU::run_after_stop() {
 }
 
 /**
+ * Fetches the instruction at PC register from the memory bus.
+ * Affected registers: PC
+ */
+CPU::instruction_t CPU::fetch_next_instruction() {
+    instruction_t instruction;
+    instruction.fields.operation = get_next_prog_byte();
+    for (int i = 1; i < INSTRUCTION_LENGTH_LOOKUP[instruction.fields.operation]; ++i) {
+        instruction.raw[i] = get_next_prog_byte();
+    }
+    return instruction;
+}
+
+/**
  * Executes an operation specified by a given opcode on the CPU
  * Returns the number of clock cycles this operation takes
  */
-int CPU::cpu_exec_op(uint8_t opcode) {
+int CPU::cpu_exec_op(instruction_t instruction) {
     int operation_cycles = -1;
-    switch (opcode) {
+    switch (instruction.fields.operation) {
         case 0x00: // NOP; 1 byte; 4 cycles
             operation_cycles = 4;
             break;
         case 0x01: // LD BC,nn; 3 bytes; 12 cycles
-            regC = get_next_prog_byte();
-            regB = get_next_prog_byte();
+            regC = instruction.fields.param1;
+            regB = instruction.fields.param2;
             operation_cycles = 12;
             break;
         case 0x02: // LD (BC),A; 1 byte; 8 cycles
@@ -482,7 +515,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x06: // LD B,n; 2 bytes; 8 cycles
-            regB = get_next_prog_byte();
+            regB = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x07: // RLCA; 1 byte; 4 cycles; Z,N,H,C flags
@@ -490,7 +523,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x08: // LD (nn),SP; 3 bytes; 20 cycles
-            bus.write(get_next_2_prog_bytes(), regSP);
+            bus.write(param16bit(instruction), regSP);
             operation_cycles = 20;
             break;
         case 0x09: // ADD HL,BC; 1 byte; 8 cycles; N,H,C flags
@@ -514,27 +547,21 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x0E: // LD C,n; 2 bytes; 8 cycles
-            regC = get_next_prog_byte();
+            regC = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x0F: // RRCA; 1 byte; 4 cycles; Z,N,H,C flags
             regA = rotate_right_with_flags(regA);
             operation_cycles = 4;
             break;
-        case 0x10: // Extended instructions // TODO: It's not really extended since it has only 1 possible operation
-            switch (get_next_prog_byte()) {
-            case 0x00: // STOP; 2 bytes; 4 cycles
-                // TODO: Halt the LCD
-                stop();
-                operation_cycles = 4;
-                break;
-            default:
-                break;
-            }
+        case 0x10: // STOP; 2 bytes; 4 cycles
+            // TODO: Halt the LCD
+            stop();
+            operation_cycles = 4;
             break;
         case 0x11: // LD DE,nn; 3 bytes; 12 cycles
-            regE = get_next_prog_byte();
-            regD = get_next_prog_byte();
+            regE = instruction.fields.param1;
+            regD = instruction.fields.param2;
             operation_cycles = 12;
             break;
         case 0x12: // LD (DE),A; 1 byte; 8 cycles
@@ -554,7 +581,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x16: // LD D,n; 2 bytes; 8 cycles
-            regD = get_next_prog_byte();
+            regD = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x17: // RLA; 1 byte; 4 cycles; Z,N,H,C flags
@@ -562,10 +589,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x18: // JR n; 2 bytes; 8 cycles
-            {
-                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
-                regPC = (regPC + offset) & 0xFFFF;
-            }
+            regPC = (regPC + unsigned_byte_to_signed(instruction.fields.param1)) & 0xFFFF;
             operation_cycles = 8;
             break;
         case 0x19: // ADD HL,DE; 1 byte; 8 cycles; N,H,C flags
@@ -589,7 +613,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x1E: // LD E,n; 2 bytes; 8 cycles
-            regE = get_next_prog_byte();
+            regE = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x1F: // RRA; 1 byte; 4 cycles; Z,N,H,C flags
@@ -597,17 +621,14 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x20: // JR NZ,n; 2 bytes; 8 cycles
-            {
-                int8_t signed_offset = unsigned_byte_to_signed(get_next_prog_byte());
-                if (flags_reg.flags.Z == 0) {
-                    regPC = (regPC + signed_offset) & 0xFFFF;
-                }
+            if (flags_reg.flags.Z == 0) {
+                regPC = (regPC + unsigned_byte_to_signed(instruction.fields.param1)) & 0xFFFF;
             }
             operation_cycles = 8;
             break;
         case 0x21: // LD HL,nn; 3 bytes; 12 cycles
-            regL = get_next_prog_byte();
-            regH = get_next_prog_byte();
+            regL = instruction.fields.param1;
+            regH = instruction.fields.param2;
             operation_cycles = 12;
             break;
         case 0x22: // LD (HL+),A; 1 byte; 8 cycles
@@ -627,7 +648,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x26: // LD H,n; 2 bytes; 8 cycles
-            regH = get_next_prog_byte();
+            regH = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x27: // DAA; 1 byte; 4 cycles; Z,H,C flags
@@ -654,9 +675,8 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             break;
         case 0x28: // JR Z,n; 2 bytes; 8 cycles
             {
-                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
                 if (flags_reg.flags.Z == 1) {
-                    regPC = (regPC + offset) & 0xFFFF;
+                    regPC = (regPC + unsigned_byte_to_signed(instruction.fields.param1)) & 0xFFFF;
                 }
             }
             operation_cycles = 8;
@@ -682,7 +702,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x2E: // LD L,n; 2 bytes; 8 cycles
-            regL = get_next_prog_byte();
+            regL = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x2F: // CPL; 1 byte; 4 cycles; N,H flags
@@ -692,17 +712,14 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x30: // JR NC,n; 2 bytes; 8 cycles
-            {
-                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
-                if (flags_reg.flags.C == 0) {
-                    regPC = (regPC + offset) & 0xFFFF;
-                }
+            if (flags_reg.flags.C == 0) {
+                regPC = (regPC + unsigned_byte_to_signed(instruction.fields.param1)) & 0xFFFF;
             }
             operation_cycles = 8;
             break;
         case 0x31: // LD SP,nn; 3 bytes; 12 cycles
-            regSP_lower = get_next_prog_byte();
-            regSP_higher = get_next_prog_byte();
+            regSP_lower = instruction.fields.param1;
+            regSP_higher = instruction.fields.param2;
             operation_cycles = 12;
             break;
         case 0x32: // LD (HL-),A; 1 byte; 8 cycles
@@ -722,7 +739,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 12;
             break;
         case 0x36: // LD (HL),n; 2 bytes; 12 cycles
-            bus.write(regHL, get_next_prog_byte());
+            bus.write(regHL, instruction.fields.param1);
             operation_cycles = 12;
             break;
         case 0x37: // STC; 1 byte; 4 cycles; N,H,C flag
@@ -732,11 +749,8 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x38: // JR C,n; 2 bytes; 8 cycles
-            {
-                int8_t offset = unsigned_byte_to_signed(get_next_prog_byte());
-                if (flags_reg.flags.C == 1) {
-                    regPC = (regPC + offset) & 0xFFFF;
-                }
+            if (flags_reg.flags.C == 1) {
+                regPC = (regPC + unsigned_byte_to_signed(instruction.fields.param1)) & 0xFFFF;
             }
             operation_cycles = 8;
             break;
@@ -761,7 +775,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x3E: // LD A,n; 2 bytes; 8 cycles
-            regA = get_next_prog_byte();
+            regA = instruction.fields.param1;
             operation_cycles = 8;
             break;
         case 0x3F: // CCF; 1 byte; 4 cycles; N, H, C flags
@@ -1285,15 +1299,15 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 12;
             break;
         case 0xC2: // JP NZ,adr; 3 bytes; 12 cycles
-            cond_jump(!flags_reg.flags.Z);
+            cond_jump(!flags_reg.flags.Z, param16bit(instruction));
             operation_cycles = 12;
             break;
         case 0xC3: // JP adr; 3 bytes; 12 cycles
-            regPC = get_next_2_prog_bytes();
+            regPC = param16bit(instruction);
             operation_cycles = 12;
             break;
         case 0xC4: // CALL NZ,adr; 3 bytes; 12 cycles
-            operation_cycles = cond_call(!flags_reg.flags.Z);
+            operation_cycles = cond_call(!flags_reg.flags.Z, param16bit(instruction));
             break;
         case 0xC5: // PUSH BC; 1 byte; 16 cycles
             stack_push(regB);
@@ -1301,7 +1315,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xC6: // ADD A,n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = add8bit_with_flags(regA, get_next_prog_byte(), 0);
+            regA = add8bit_with_flags(regA, instruction.fields.param1, 0);
             operation_cycles = 8;
             break;
         case 0xC7: // RST 00H; 1 byte; 32 cycles
@@ -1317,331 +1331,324 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 8;
             break;
         case 0xCA: // JP Z,adr; 3 bytes; 12 cycles
-            cond_jump(flags_reg.flags.Z);
+            cond_jump(flags_reg.flags.Z, param16bit(instruction));
             operation_cycles = 12;
             break;
         case 0xCB: // Extended instructions
-        {
-            uint8_t op = get_next_prog_byte(); // TODO: Cleanup
-            switch (op) {
-                case 0x00: // RLC B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = rotate_left_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x01: // RLC C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = rotate_left_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x02: // RLC D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = rotate_left_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x03: // RLC E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = rotate_left_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x04: // RLC H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = rotate_left_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x05: // RLC L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = rotate_left_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x06: // RLC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, rotate_left_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x07: // RLC A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = rotate_left_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x08: // RRC B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = rotate_right_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x09: // RRC C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = rotate_right_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x0A: // RRC D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = rotate_right_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x0B: // RRC E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = rotate_right_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x0C: // RRC H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = rotate_right_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x0D: // RRC L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = rotate_right_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x0E: // RRC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, rotate_right_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x0F: // RRC A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = rotate_right_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x10: // RL B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = rotate_left_carry_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x11: // RL C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = rotate_left_carry_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x12: // RL D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = rotate_left_carry_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x13: // RL E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = rotate_left_carry_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x14: // RL H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = rotate_left_carry_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x15: // RL L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = rotate_left_carry_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x16: // RL (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, rotate_left_carry_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x17: // RL A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = rotate_left_carry_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x18: // RR B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = rotate_right_carry_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x19: // RR C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = rotate_right_carry_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x1A: // RR D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = rotate_right_carry_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x1B: // RR E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = rotate_right_carry_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x1C: // RR H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = rotate_right_carry_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x1D: // RR L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = rotate_right_carry_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x1E: // RR (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, rotate_right_carry_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x1F: // RR A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = rotate_right_carry_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x20: // SLA B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = shift_left_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x21: // SLA C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = shift_left_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x22: // SLA D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = shift_left_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x23: // SLA E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = shift_left_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x24: // SLA H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = shift_left_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x25: // SLA L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = shift_left_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x26: // SLA (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, shift_left_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x27: // SLA A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = shift_left_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x28: // SRA B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = shift_right_leave_msb_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x29: // SRA C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = shift_right_leave_msb_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x2A: // SRA D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = shift_right_leave_msb_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x2B: // SRA E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = shift_right_leave_msb_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x2C: // SRA H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = shift_right_leave_msb_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x2D: // SRA L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = shift_right_leave_msb_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x2E: // SRA (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, shift_right_leave_msb_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x2F: // SRA A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = shift_right_leave_msb_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x30: // SWAP B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = swap_nibbles_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x31: // SWAP C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = swap_nibbles_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x32: // SWAP D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = swap_nibbles_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x33: // SWAP E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = swap_nibbles_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x34: // SWAP H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = swap_nibbles_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x35: // SWAP L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = swap_nibbles_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x36: // SWAP (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, swap_nibbles_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x37: // SWAP A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = swap_nibbles_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                case 0x38: // SRL B; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regB = shift_right_with_flags(regB);
-                    operation_cycles = 8;
-                    break;
-                case 0x39: // SRL C; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regC = shift_right_with_flags(regC);
-                    operation_cycles = 8;
-                    break;
-                case 0x3A: // SRL D; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regD = shift_right_with_flags(regD);
-                    operation_cycles = 8;
-                    break;
-                case 0x3B: // SRL E; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regE = shift_right_with_flags(regE);
-                    operation_cycles = 8;
-                    break;
-                case 0x3C: // SRL H; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regH = shift_right_with_flags(regH);
-                    operation_cycles = 8;
-                    break;
-                case 0x3D: // SRL L; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regL = shift_right_with_flags(regL);
-                    operation_cycles = 8;
-                    break;
-                case 0x3E: // SRL (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                    bus.write(regHL, shift_right_with_flags(bus.read(regHL)));
-                    operation_cycles = 16;
-                    break;
-                case 0x3F: // SRL A; 2 bytes; 8 cycles; Z,N,H,C flags
-                    regA = shift_right_with_flags(regA);
-                    operation_cycles = 8;
-                    break;
-                default: // BIT, SET, RES operations // TODO: Cleanup
-                {
-                    int bit_no = (op & 0b00111000) >> 3;
-                    int reg_id = op & 0b00000111;
-                    uint8_t *reg_lookup[] = {&regB, &regC, &regD, &regE, &regH, &regL};
-                    switch((op & 0b11000000) >> 6) {
-                        case 0b01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
-                            if (reg_id == 7) {
-                                test_bit_with_flags(bit_no, regA);
-                                operation_cycles = 8;
-                            } else if (reg_id == 6) {
-                                test_bit_with_flags(bit_no, bus.read(regHL));
-                                operation_cycles = 16;
-                            } else {
-                                test_bit_with_flags(bit_no, *reg_lookup[reg_id]);
-                                operation_cycles = 8;
-                            }
-                            break;
-                        case 0b10: // RES b,r; 2 bytes; 8/16 cycles
-                            if (reg_id == 7) {
-                                regA = regA & (~(1 << bit_no));
-                                operation_cycles = 8;
-                            } else if (reg_id == 6) {
-                                bus.write(regHL, bus.read(regHL) & (~(1 << bit_no)));
-                                operation_cycles = 16;
-                            } else {
-                                *reg_lookup[reg_id] = *reg_lookup[reg_id] & (~(1 << bit_no));
-                                operation_cycles = 8;
-                            }
-                            break;
-                        case 0b11: // SET b,r; 2 bytes; 8/16 cycles
-                            if (reg_id == 7) {
-                                regA = regA | (1 << bit_no);
-                                operation_cycles = 8;
-                            } else if (reg_id == 6) {
-                                bus.write(regHL, bus.read(regHL) | (1 << bit_no));
-                                operation_cycles = 16;
-                            } else {
-                                *reg_lookup[reg_id] = *reg_lookup[reg_id] | (1 << bit_no);
-                                operation_cycles = 8;
-                            }
-                            break;
-                    }
+        switch (instruction.fields.param1) {
+            case 0x00: // RLC B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = rotate_left_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x01: // RLC C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = rotate_left_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x02: // RLC D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = rotate_left_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x03: // RLC E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = rotate_left_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x04: // RLC H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = rotate_left_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x05: // RLC L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = rotate_left_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x06: // RLC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, rotate_left_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x07: // RLC A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = rotate_left_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x08: // RRC B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = rotate_right_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x09: // RRC C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = rotate_right_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x0A: // RRC D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = rotate_right_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x0B: // RRC E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = rotate_right_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x0C: // RRC H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = rotate_right_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x0D: // RRC L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = rotate_right_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x0E: // RRC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, rotate_right_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x0F: // RRC A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = rotate_right_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x10: // RL B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = rotate_left_carry_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x11: // RL C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = rotate_left_carry_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x12: // RL D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = rotate_left_carry_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x13: // RL E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = rotate_left_carry_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x14: // RL H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = rotate_left_carry_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x15: // RL L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = rotate_left_carry_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x16: // RL (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, rotate_left_carry_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x17: // RL A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = rotate_left_carry_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x18: // RR B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = rotate_right_carry_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x19: // RR C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = rotate_right_carry_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x1A: // RR D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = rotate_right_carry_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x1B: // RR E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = rotate_right_carry_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x1C: // RR H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = rotate_right_carry_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x1D: // RR L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = rotate_right_carry_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x1E: // RR (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, rotate_right_carry_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x1F: // RR A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = rotate_right_carry_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x20: // SLA B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = shift_left_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x21: // SLA C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = shift_left_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x22: // SLA D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = shift_left_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x23: // SLA E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = shift_left_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x24: // SLA H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = shift_left_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x25: // SLA L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = shift_left_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x26: // SLA (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, shift_left_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x27: // SLA A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = shift_left_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x28: // SRA B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = shift_right_leave_msb_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x29: // SRA C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = shift_right_leave_msb_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x2A: // SRA D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = shift_right_leave_msb_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x2B: // SRA E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = shift_right_leave_msb_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x2C: // SRA H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = shift_right_leave_msb_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x2D: // SRA L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = shift_right_leave_msb_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x2E: // SRA (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, shift_right_leave_msb_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x2F: // SRA A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = shift_right_leave_msb_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x30: // SWAP B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = swap_nibbles_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x31: // SWAP C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = swap_nibbles_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x32: // SWAP D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = swap_nibbles_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x33: // SWAP E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = swap_nibbles_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x34: // SWAP H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = swap_nibbles_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x35: // SWAP L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = swap_nibbles_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x36: // SWAP (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, swap_nibbles_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x37: // SWAP A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = swap_nibbles_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            case 0x38: // SRL B; 2 bytes; 8 cycles; Z,N,H,C flags
+                regB = shift_right_with_flags(regB);
+                operation_cycles = 8;
+                break;
+            case 0x39: // SRL C; 2 bytes; 8 cycles; Z,N,H,C flags
+                regC = shift_right_with_flags(regC);
+                operation_cycles = 8;
+                break;
+            case 0x3A: // SRL D; 2 bytes; 8 cycles; Z,N,H,C flags
+                regD = shift_right_with_flags(regD);
+                operation_cycles = 8;
+                break;
+            case 0x3B: // SRL E; 2 bytes; 8 cycles; Z,N,H,C flags
+                regE = shift_right_with_flags(regE);
+                operation_cycles = 8;
+                break;
+            case 0x3C: // SRL H; 2 bytes; 8 cycles; Z,N,H,C flags
+                regH = shift_right_with_flags(regH);
+                operation_cycles = 8;
+                break;
+            case 0x3D: // SRL L; 2 bytes; 8 cycles; Z,N,H,C flags
+                regL = shift_right_with_flags(regL);
+                operation_cycles = 8;
+                break;
+            case 0x3E: // SRL (HL); 2 bytes; 16 cycles; Z,N,H,C flags
+                bus.write(regHL, shift_right_with_flags(bus.read(regHL)));
+                operation_cycles = 16;
+                break;
+            case 0x3F: // SRL A; 2 bytes; 8 cycles; Z,N,H,C flags
+                regA = shift_right_with_flags(regA);
+                operation_cycles = 8;
+                break;
+            default: // BIT, SET, RES operations // TODO: Cleanup
+            {
+                extended_op_t *ext_op = reinterpret_cast<extended_op_t *>(&instruction.fields.param1);
+                uint8_t *reg_lookup[] = {&regB, &regC, &regD, &regE, &regH, &regL};
+                switch(ext_op->op) {
+                    case 0b01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
+                        if (ext_op->reg_id == 7) {
+                            test_bit_with_flags(ext_op->bit_no, regA);
+                            operation_cycles = 8;
+                        } else if (ext_op->reg_id == 6) {
+                            test_bit_with_flags(ext_op->bit_no, bus.read(regHL));
+                            operation_cycles = 16;
+                        } else {
+                            test_bit_with_flags(ext_op->bit_no, *reg_lookup[ext_op->reg_id]);
+                            operation_cycles = 8;
+                        }
+                        break;
+                    case 0b10: // RES b,r; 2 bytes; 8/16 cycles
+                        if (ext_op->reg_id == 7) {
+                            regA = regA & (~(1 << ext_op->bit_no));
+                            operation_cycles = 8;
+                        } else if (ext_op->reg_id == 6) {
+                            bus.write(regHL, bus.read(regHL) & (~(1 << ext_op->bit_no)));
+                            operation_cycles = 16;
+                        } else {
+                            *reg_lookup[ext_op->reg_id] = *reg_lookup[ext_op->reg_id] & (~(1 << ext_op->bit_no));
+                            operation_cycles = 8;
+                        }
+                        break;
+                    case 0b11: // SET b,r; 2 bytes; 8/16 cycles
+                        if (ext_op->reg_id == 7) {
+                            regA = regA | (1 << ext_op->bit_no);
+                            operation_cycles = 8;
+                        } else if (ext_op->reg_id == 6) {
+                            bus.write(regHL, bus.read(regHL) | (1 << ext_op->bit_no));
+                            operation_cycles = 16;
+                        } else {
+                            *reg_lookup[ext_op->reg_id] = *reg_lookup[ext_op->reg_id] | (1 << ext_op->bit_no);
+                            operation_cycles = 8;
+                        }
+                        break;
                 }
-                    break;
             }
+                break;
         }
             break;
         case 0xCC: // CALL Z,adr; 3 bytes; 12 cycles
-            operation_cycles = cond_call(flags_reg.flags.Z);
+            operation_cycles = cond_call(flags_reg.flags.Z, param16bit(instruction));
             break;
         case 0xCD: // CALL adr; 3 bytes; 12 cycles
-            {
-                uint16_t newPC = get_next_2_prog_bytes();
-                stack_push(regPC_higher);
-                stack_push(regPC_lower);
-                regPC = newPC;
-            }
+            stack_push(regPC_higher);
+            stack_push(regPC_lower);
+            regPC = param16bit(instruction);
             operation_cycles = 12;
             break;
         case 0xCE: // ADC A,n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = add8bit_with_flags(regA, get_next_prog_byte(), flags_reg.flags.C);
+            regA = add8bit_with_flags(regA, instruction.fields.param1, flags_reg.flags.C);
             operation_cycles = 8;
             break;
         case 0xCF: // RST 08H; 1 byte; 32 cycles
@@ -1657,7 +1664,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 12;
             break;
         case 0xD2: // JP NC,adr; 3 bytes; 12 cycles
-            cond_jump(!flags_reg.flags.C);
+            cond_jump(!flags_reg.flags.C, param16bit(instruction));
             operation_cycles = 12;
             break;
         // // TODO: To update
@@ -1666,7 +1673,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 10;
         //     break;
         case 0xD4: // CALL NC,adr; 3 bytes; 12 cycles
-            operation_cycles = cond_call(!flags_reg.flags.C);
+            operation_cycles = cond_call(!flags_reg.flags.C, param16bit(instruction));
             break;
         case 0xD5: // PUSH DE; 1 byte; 16 cycles
             stack_push(regD);
@@ -1674,7 +1681,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xD6: // SUB n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = sub8bit_with_flags(regA, get_next_prog_byte(), 0);
+            regA = sub8bit_with_flags(regA, instruction.fields.param1, 0);
             operation_cycles = 8;
             break;
         case 0xD7: // RST 10H; 1 byte; 32 cycles
@@ -1691,7 +1698,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 8;
             break;
         case 0xDA: // JP C,adr; 3 bytes; 12 cycles
-            cond_jump(flags_reg.flags.C);
+            cond_jump(flags_reg.flags.C, param16bit(instruction));
             operation_cycles = 12;
             break;
         // // TODO: To update
@@ -1700,7 +1707,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 10;
         //     break;
         case 0xDC: // CALL C,adr; 3 bytes; 12 cycles
-            operation_cycles = cond_call(flags_reg.flags.C);
+            operation_cycles = cond_call(flags_reg.flags.C, param16bit(instruction));
             break;
         // // TODO: To update
         // case 0xDD: // - (works as CALL addr); 3 bytes; 17 cycles
@@ -1713,7 +1720,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 17;
         //     break;
         case 0xDE: // SBC A,n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = sub8bit_with_flags(regA, get_next_prog_byte(), flags_reg.flags.C);
+            regA = sub8bit_with_flags(regA, instruction.fields.param1, flags_reg.flags.C);
             operation_cycles = 8;
             break;
         case 0xDF: // RST 18H; 1 byte; 32 cycles
@@ -1721,7 +1728,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xE0: // LD ($FF00 + n),A; 2 bytes; 12 cycles
-            bus.write(0xFF00 + get_next_prog_byte(), regA);
+            bus.write(0xFF00 + instruction.fields.param1, regA);
             operation_cycles = 12;
             break;
         case 0xE1: // POP HL; 1 byte; 12 cycles
@@ -1755,7 +1762,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xE6: // AND n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = and8bit_with_flags(regA, get_next_prog_byte());
+            regA = and8bit_with_flags(regA, instruction.fields.param1);
             operation_cycles = 8;
             break;
         case 0xE7: // RST 20H; 1 byte; 32 cycles
@@ -1763,14 +1770,14 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xE8: // ADD SP,n; 2 bytes; 16 cycles; Z,N,H,C flags
-            regSP = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(get_next_prog_byte()), regSP);
+            regSP = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(instruction.fields.param1), regSP);
             break;
         case 0xE9: // JP (HL); 1 byte; 4 cycles
             regPC = regHL; // TODO: Check if this is correct
             operation_cycles = 4;
             break;
         case 0xEA: // LD (nn),A; 3 bytes; 16 cycles
-            bus.write(get_next_2_prog_bytes(), regA);
+            bus.write(param16bit(instruction), regA);
             operation_cycles = 16;
             break;
         // // TODO: To update
@@ -1797,7 +1804,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 17;
         //     break;
         case 0xEE: // XOR n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = xor8bit_with_flags(regA, get_next_prog_byte());
+            regA = xor8bit_with_flags(regA, instruction.fields.param1);
             operation_cycles = 8;
             break;
         case 0xEF: // RST 28H; 1 byte; 32 cycles
@@ -1805,7 +1812,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xF0: // LD A,($FF00 + n); 2 bytes; 12 cycles
-            regA = bus.read(0xFF00 + get_next_prog_byte());
+            regA = bus.read(0xFF00 + instruction.fields.param1);
             operation_cycles = 12;
             break;
         case 0xF1: // POP AF; 1 byte; 12 cycles
@@ -1833,7 +1840,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 16;
             break;
         case 0xF6: // OR n; 2 bytes; 8 cycles; Z,N,H,C flags
-            regA = or8bit_with_flags(regA, get_next_prog_byte());
+            regA = or8bit_with_flags(regA, instruction.fields.param1);
             operation_cycles = 8;
             break;
         case 0xF7: // RST 30H; 1 byte; 32 cycles
@@ -1841,7 +1848,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 32;
             break;
         case 0xF8: // LDHL SP+n; 2 bytes; 12 cycles; Z,N,H,C flags
-            regHL = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(get_next_prog_byte()), regSP);
+            regHL = add_s8bit_to_u16bit_with_flags(unsigned_byte_to_signed(instruction.fields.param1), regSP);
             operation_cycles = 12;
             break;
         case 0xF9: // LD SP,HL; 1 byte; 8 cycles
@@ -1849,7 +1856,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
             operation_cycles = 8;
             break;
         case 0xFA: // LD A,(nn); 3 bytes; 16 cycles
-            regA = bus.read(get_next_2_prog_bytes());
+            regA = bus.read(param16bit(instruction));
             operation_cycles = 16;
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
@@ -1871,7 +1878,7 @@ int CPU::cpu_exec_op(uint8_t opcode) {
         //     operation_cycles = 17;
         //     break;
         case 0xFE: // CMP n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sub8bit_with_flags(regA, get_next_prog_byte(), 0);
+            sub8bit_with_flags(regA, instruction.fields.param1, 0);
             operation_cycles = 8;
             break;
         case 0xFF: // RST 38H; 1 byte; 32 cycles

@@ -4,6 +4,16 @@
 
 class CPU {
 public:
+    union instruction_t {
+        uint8_t raw[3];
+        struct FIELDS {
+            uint8_t operation;
+            uint8_t param1;
+            uint8_t param2;
+        } fields;
+    };
+
+public:
     CPU(Bus &bus);
     ~CPU();
     uint8_t get_regA() {return regA;};
@@ -24,6 +34,13 @@ public:
     long get_clock_speed_Hz();
 
 protected:
+    struct __attribute__((packed)) extended_op_t {
+        unsigned reg_id: 3;
+        unsigned bit_no: 3;
+        unsigned op: 2;
+    };
+
+protected:
     uint8_t regA;
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;
@@ -32,6 +49,7 @@ protected:
     const long CLOCK_SPEED_HZ = 4194304;
     const uint16_t INTERRUPT_PC_LOOKUP[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
 
+protected:
     uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry);
     uint16_t add16bit_with_flags(uint16_t val1, uint16_t val2);
     uint16_t add_s8bit_to_u16bit_with_flags(int8_t val1, uint16_t val2);
@@ -55,10 +73,11 @@ protected:
     inline uint8_t get_next_prog_byte();
     uint16_t get_next_2_prog_bytes();
     inline int cond_return(bool condition);
-    inline void cond_jump(bool condition);
-    int cond_call(bool condition);
-    inline void call_addr(uint16_t addr);
-    int cpu_exec_op(uint8_t opcode);
+    inline void cond_jump(bool condition, uint16_t address);
+    int cond_call(bool condition, uint16_t address);
+    inline void call_addr(uint16_t address);
+    instruction_t fetch_next_instruction();
+    int cpu_exec_op(instruction_t instruction);
     inline void stop();
     inline void run_after_stop();
 };
