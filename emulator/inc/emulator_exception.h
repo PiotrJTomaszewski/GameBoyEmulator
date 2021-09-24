@@ -16,5 +16,5 @@ public:
     }
 
 private:
-    char buffer[50];
+    char buffer[100];
 };
