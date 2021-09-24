@@ -16,7 +16,7 @@ const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_
     CPUWrapper cpu(bus); \
     bus.load_file(BLARGG_CPU_TESTS_DIR + file_name); \
     bool timeout_occured = false; \
-    std::cout << "-------- " << file_name << " --------" << std::endl; \
+    const char *passed_str_pos; \
     while (test_running) { \
         cycles = cpu.exec_next_instr(); \
         bus.io.timer.tick(cycles); \
@@ -30,9 +30,13 @@ const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_
             test_running = false; \
         } \
     } \
-    std::cout << bus.get_serial_data_log() << std::endl << std::endl << std::endl; \
+    passed_str_pos = strstr(bus.get_serial_data_log(), "Passed"); \
+    if (passed_str_pos == nullptr) { \
+        std::cout << "-------- " << file_name << " --------" << std::endl; \
+        std::cout << bus.get_serial_data_log() << std::endl << std::endl << std::endl; \
+    } \
     CHECK_FALSE(timeout_occured); \
-    CHECK(strstr(bus.get_serial_data_log(), "Passed") != nullptr);
+    CHECK(passed_str_pos != nullptr);
 
 
 TEST_SUITE("Blargg CPU Instrucions Tests") {
