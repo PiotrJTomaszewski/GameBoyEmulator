@@ -134,6 +134,7 @@ TEST_SUITE("ALU Tests") {
         CPUWrapper::instruction_t instr;
 
         SUBCASE("0x80") {
+            cpu.clear_flag_C();
             cpu.set_regA(0x80);
             // RLCA
             instr.fields.operation = 0x07;
@@ -146,6 +147,7 @@ TEST_SUITE("ALU Tests") {
         }
 
         SUBCASE("0x17") {
+            cpu.set_flag_C();
             cpu.set_regA(0x17);
             // RLCA
             instr.fields.operation = 0x07;
@@ -155,6 +157,86 @@ TEST_SUITE("ALU Tests") {
             CHECK(cpu.get_flag_N() == 0);
             CHECK(cpu.get_flag_H() == 0);
             CHECK(cpu.get_flag_C() == 0);
+        }
+    }
+
+    TEST_CASE("RLA") {
+        MockBus mock_bus;
+        CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
+        SUBCASE("0x70 - C=1") {
+            cpu.set_flag_C();
+            cpu.set_regA(0x70);
+            // RLA
+            instr.fields.operation = 0x17;
+            cpu.exec_explicit_instr(instr);
+            CHECK(cpu.get_regA() == 0xE1);
+            CHECK(cpu.get_flag_Z() == 0);
+            CHECK(cpu.get_flag_N() == 0);
+            CHECK(cpu.get_flag_H() == 0);
+            CHECK(cpu.get_flag_C() == 0);
+        }
+
+        SUBCASE("0x80 - C=0") {
+            cpu.clear_flag_C();
+            cpu.set_regA(0x80);
+            // RLA
+            instr.fields.operation = 0x17;
+            cpu.exec_explicit_instr(instr);
+            CHECK(cpu.get_regA() == 0x00);
+            CHECK(cpu.get_flag_Z() == 0);
+            CHECK(cpu.get_flag_N() == 0);
+            CHECK(cpu.get_flag_H() == 0);
+            CHECK(cpu.get_flag_C() == 1);
+        }
+    }
+
+    TEST_CASE("RRCA") {
+        MockBus mock_bus;
+        CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
+        SUBCASE("0x01") {
+            cpu.clear_flag_C();
+            cpu.set_regA(0x01);
+            // RRCA
+            instr.fields.operation = 0x0F;
+            cpu.exec_explicit_instr(instr);
+            CHECK(cpu.get_regA() == 0x80);
+            CHECK(cpu.get_flag_Z() == 0);
+            CHECK(cpu.get_flag_N() == 0);
+            CHECK(cpu.get_flag_H() == 0);
+            CHECK(cpu.get_flag_C() == 1);
+        }
+    }
+
+    TEST_CASE("RRA") {
+        MockBus mock_bus;
+        CPUWrapper cpu(mock_bus);
+        CPUWrapper::instruction_t instr;
+        SUBCASE("0x80 - C=1") {
+            cpu.set_flag_C();
+            cpu.set_regA(0x80);
+            // RRCA
+            instr.fields.operation = 0x1F;
+            cpu.exec_explicit_instr(instr);
+            CHECK(cpu.get_regA() == 0xC0);
+            CHECK(cpu.get_flag_Z() == 0);
+            CHECK(cpu.get_flag_N() == 0);
+            CHECK(cpu.get_flag_H() == 0);
+            CHECK(cpu.get_flag_C() == 0);
+        }
+
+        SUBCASE("0x01 - C=0") {
+            cpu.clear_flag_C();
+            cpu.set_regA(0x01);
+            // RRCA
+            instr.fields.operation = 0x1F;
+            cpu.exec_explicit_instr(instr);
+            CHECK(cpu.get_regA() == 0x00);
+            CHECK(cpu.get_flag_Z() == 0);
+            CHECK(cpu.get_flag_N() == 0);
+            CHECK(cpu.get_flag_H() == 0);
+            CHECK(cpu.get_flag_C() == 1);
         }
     }
 }

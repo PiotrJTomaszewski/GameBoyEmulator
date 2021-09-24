@@ -263,10 +263,10 @@ uint8_t CPU::swap_nibbles_with_flags(uint8_t val) {
  * Affected flags: Z, N, H, C
  * Affected registers: None
  */
-uint8_t CPU::rotate_left_with_flags(uint8_t val) {
+uint8_t CPU::rotate_left_with_flags(uint8_t val, bool calc_Z_flag) {
     flags_reg.flags.C = ((val & 0x80) != 0);
     val = (val << 1) | flags_reg.flags.C;
-    flags_reg.flags.Z = (val == 0);
+    flags_reg.flags.Z = (calc_Z_flag && (val == 0));
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 0;
     return val;
@@ -277,11 +277,11 @@ uint8_t CPU::rotate_left_with_flags(uint8_t val) {
  * Affected flags: Z, N, H, C
  * Affected registers: None
  */
-uint8_t CPU::rotate_left_carry_with_flags(uint8_t val) {
+uint8_t CPU::rotate_left_carry_with_flags(uint8_t val, bool calc_Z_flag) {
     uint8_t old_C_flag = flags_reg.flags.C;
     flags_reg.flags.C = ((val & 0x80) != 0);
     val = (val << 1) | old_C_flag;
-    flags_reg.flags.Z = (val == 0);
+    flags_reg.flags.Z = (calc_Z_flag && (val == 0));
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 0;
     return val;
@@ -292,10 +292,10 @@ uint8_t CPU::rotate_left_carry_with_flags(uint8_t val) {
  * Affected flags: Z, N, H, C
  * Affected registers: None
  */
-uint8_t CPU::rotate_right_with_flags(uint8_t val) {
+uint8_t CPU::rotate_right_with_flags(uint8_t val, bool calc_Z_flag) {
     flags_reg.flags.C = (val & 0x01);
     val = (val >> 1) | (flags_reg.flags.C << 7);
-    flags_reg.flags.Z = (val == 0);
+    flags_reg.flags.Z = (calc_Z_flag && (val == 0));
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 0;
     return val;
@@ -306,11 +306,11 @@ uint8_t CPU::rotate_right_with_flags(uint8_t val) {
  * Affected flags: Z, N, H, C
  * Affected registers: None
  */
-uint8_t CPU::rotate_right_carry_with_flags(uint8_t val) {
+uint8_t CPU::rotate_right_carry_with_flags(uint8_t val, bool calc_Z_flag) {
     uint8_t old_C_flag = flags_reg.flags.C;
     flags_reg.flags.C = (val & 0x01);
     val = (val >> 1) | (old_C_flag << 7);
-    flags_reg.flags.Z = (val == 0);
+    flags_reg.flags.Z = (calc_Z_flag && (val == 0));
     flags_reg.flags.N = 0;
     flags_reg.flags.H = 0;
     return val;
@@ -526,7 +526,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 8;
             break;
         case 0x07: // RLCA; 1 byte; 4 cycles; Z,N,H,C flags
-            regA = rotate_left_with_flags(regA);
+            regA = rotate_left_with_flags(regA, false);
             operation_cycles = 4;
             break;
         case 0x08: // LD (nn),SP; 3 bytes; 20 cycles
@@ -558,7 +558,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 8;
             break;
         case 0x0F: // RRCA; 1 byte; 4 cycles; Z,N,H,C flags
-            regA = rotate_right_with_flags(regA);
+            regA = rotate_right_with_flags(regA, false);
             operation_cycles = 4;
             break;
         case 0x10: // STOP; 2 bytes; 4 cycles
@@ -591,7 +591,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 8;
             break;
         case 0x17: // RLA; 1 byte; 4 cycles; Z,N,H,C flags
-            regA = rotate_left_carry_with_flags(regA);
+            regA = rotate_left_carry_with_flags(regA, false);
             operation_cycles = 4;
             break;
         case 0x18: // JR n; 2 bytes; 8 cycles
@@ -623,7 +623,7 @@ int CPU::cpu_exec_op(instruction_t instruction) {
             operation_cycles = 8;
             break;
         case 0x1F: // RRA; 1 byte; 4 cycles; Z,N,H,C flags
-            regA = rotate_right_carry_with_flags(regA);
+            regA = rotate_right_carry_with_flags(regA, false);
             operation_cycles = 4;
             break;
         case 0x20: // JR NZ,n; 2 bytes; 8 cycles
@@ -1343,131 +1343,131 @@ int CPU::cpu_exec_op(instruction_t instruction) {
         case 0xCB: // Extended instructions
         switch (instruction.fields.param1) {
             case 0x00: // RLC B; 2 bytes; 8 cycles; Z,N,H,C flags
-                regB = rotate_left_with_flags(regB);
+                regB = rotate_left_with_flags(regB, true);
                 operation_cycles = 8;
                 break;
             case 0x01: // RLC C; 2 bytes; 8 cycles; Z,N,H,C flags
-                regC = rotate_left_with_flags(regC);
+                regC = rotate_left_with_flags(regC, true);
                 operation_cycles = 8;
                 break;
             case 0x02: // RLC D; 2 bytes; 8 cycles; Z,N,H,C flags
-                regD = rotate_left_with_flags(regD);
+                regD = rotate_left_with_flags(regD, true);
                 operation_cycles = 8;
                 break;
             case 0x03: // RLC E; 2 bytes; 8 cycles; Z,N,H,C flags
-                regE = rotate_left_with_flags(regE);
+                regE = rotate_left_with_flags(regE, true);
                 operation_cycles = 8;
                 break;
             case 0x04: // RLC H; 2 bytes; 8 cycles; Z,N,H,C flags
-                regH = rotate_left_with_flags(regH);
+                regH = rotate_left_with_flags(regH, true);
                 operation_cycles = 8;
                 break;
             case 0x05: // RLC L; 2 bytes; 8 cycles; Z,N,H,C flags
-                regL = rotate_left_with_flags(regL);
+                regL = rotate_left_with_flags(regL, true);
                 operation_cycles = 8;
                 break;
             case 0x06: // RLC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                bus.write(regHL, rotate_left_with_flags(bus.read(regHL)));
+                bus.write(regHL, rotate_left_with_flags(bus.read(regHL), true));
                 operation_cycles = 16;
                 break;
             case 0x07: // RLC A; 2 bytes; 8 cycles; Z,N,H,C flags
-                regA = rotate_left_with_flags(regA);
+                regA = rotate_left_with_flags(regA, true);
                 operation_cycles = 8;
                 break;
             case 0x08: // RRC B; 2 bytes; 8 cycles; Z,N,H,C flags
-                regB = rotate_right_with_flags(regB);
+                regB = rotate_right_with_flags(regB, true);
                 operation_cycles = 8;
                 break;
             case 0x09: // RRC C; 2 bytes; 8 cycles; Z,N,H,C flags
-                regC = rotate_right_with_flags(regC);
+                regC = rotate_right_with_flags(regC, true);
                 operation_cycles = 8;
                 break;
             case 0x0A: // RRC D; 2 bytes; 8 cycles; Z,N,H,C flags
-                regD = rotate_right_with_flags(regD);
+                regD = rotate_right_with_flags(regD, true);
                 operation_cycles = 8;
                 break;
             case 0x0B: // RRC E; 2 bytes; 8 cycles; Z,N,H,C flags
-                regE = rotate_right_with_flags(regE);
+                regE = rotate_right_with_flags(regE, true);
                 operation_cycles = 8;
                 break;
             case 0x0C: // RRC H; 2 bytes; 8 cycles; Z,N,H,C flags
-                regH = rotate_right_with_flags(regH);
+                regH = rotate_right_with_flags(regH, true);
                 operation_cycles = 8;
                 break;
             case 0x0D: // RRC L; 2 bytes; 8 cycles; Z,N,H,C flags
-                regL = rotate_right_with_flags(regL);
+                regL = rotate_right_with_flags(regL, true);
                 operation_cycles = 8;
                 break;
             case 0x0E: // RRC (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                bus.write(regHL, rotate_right_with_flags(bus.read(regHL)));
+                bus.write(regHL, rotate_right_with_flags(bus.read(regHL), true));
                 operation_cycles = 16;
                 break;
             case 0x0F: // RRC A; 2 bytes; 8 cycles; Z,N,H,C flags
-                regA = rotate_right_with_flags(regA);
+                regA = rotate_right_with_flags(regA, true);
                 operation_cycles = 8;
                 break;
             case 0x10: // RL B; 2 bytes; 8 cycles; Z,N,H,C flags
-                regB = rotate_left_carry_with_flags(regB);
+                regB = rotate_left_carry_with_flags(regB, true);
                 operation_cycles = 8;
                 break;
             case 0x11: // RL C; 2 bytes; 8 cycles; Z,N,H,C flags
-                regC = rotate_left_carry_with_flags(regC);
+                regC = rotate_left_carry_with_flags(regC, true);
                 operation_cycles = 8;
                 break;
             case 0x12: // RL D; 2 bytes; 8 cycles; Z,N,H,C flags
-                regD = rotate_left_carry_with_flags(regD);
+                regD = rotate_left_carry_with_flags(regD, true);
                 operation_cycles = 8;
                 break;
             case 0x13: // RL E; 2 bytes; 8 cycles; Z,N,H,C flags
-                regE = rotate_left_carry_with_flags(regE);
+                regE = rotate_left_carry_with_flags(regE, true);
                 operation_cycles = 8;
                 break;
             case 0x14: // RL H; 2 bytes; 8 cycles; Z,N,H,C flags
-                regH = rotate_left_carry_with_flags(regH);
+                regH = rotate_left_carry_with_flags(regH, true);
                 operation_cycles = 8;
                 break;
             case 0x15: // RL L; 2 bytes; 8 cycles; Z,N,H,C flags
-                regL = rotate_left_carry_with_flags(regL);
+                regL = rotate_left_carry_with_flags(regL, true);
                 operation_cycles = 8;
                 break;
             case 0x16: // RL (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                bus.write(regHL, rotate_left_carry_with_flags(bus.read(regHL)));
+                bus.write(regHL, rotate_left_carry_with_flags(bus.read(regHL), true));
                 operation_cycles = 16;
                 break;
             case 0x17: // RL A; 2 bytes; 8 cycles; Z,N,H,C flags
-                regA = rotate_left_carry_with_flags(regA);
+                regA = rotate_left_carry_with_flags(regA, true);
                 operation_cycles = 8;
                 break;
             case 0x18: // RR B; 2 bytes; 8 cycles; Z,N,H,C flags
-                regB = rotate_right_carry_with_flags(regB);
+                regB = rotate_right_carry_with_flags(regB, true);
                 operation_cycles = 8;
                 break;
             case 0x19: // RR C; 2 bytes; 8 cycles; Z,N,H,C flags
-                regC = rotate_right_carry_with_flags(regC);
+                regC = rotate_right_carry_with_flags(regC, true);
                 operation_cycles = 8;
                 break;
             case 0x1A: // RR D; 2 bytes; 8 cycles; Z,N,H,C flags
-                regD = rotate_right_carry_with_flags(regD);
+                regD = rotate_right_carry_with_flags(regD, true);
                 operation_cycles = 8;
                 break;
             case 0x1B: // RR E; 2 bytes; 8 cycles; Z,N,H,C flags
-                regE = rotate_right_carry_with_flags(regE);
+                regE = rotate_right_carry_with_flags(regE, true);
                 operation_cycles = 8;
                 break;
             case 0x1C: // RR H; 2 bytes; 8 cycles; Z,N,H,C flags
-                regH = rotate_right_carry_with_flags(regH);
+                regH = rotate_right_carry_with_flags(regH, true);
                 operation_cycles = 8;
                 break;
             case 0x1D: // RR L; 2 bytes; 8 cycles; Z,N,H,C flags
-                regL = rotate_right_carry_with_flags(regL);
+                regL = rotate_right_carry_with_flags(regL, true);
                 operation_cycles = 8;
                 break;
             case 0x1E: // RR (HL); 2 bytes; 16 cycles; Z,N,H,C flags
-                bus.write(regHL, rotate_right_carry_with_flags(bus.read(regHL)));
+                bus.write(regHL, rotate_right_carry_with_flags(bus.read(regHL), true));
                 operation_cycles = 16;
                 break;
             case 0x1F: // RR A; 2 bytes; 8 cycles; Z,N,H,C flags
-                regA = rotate_right_carry_with_flags(regA);
+                regA = rotate_right_carry_with_flags(regA, true);
                 operation_cycles = 8;
                 break;
             case 0x20: // SLA B; 2 bytes; 8 cycles; Z,N,H,C flags

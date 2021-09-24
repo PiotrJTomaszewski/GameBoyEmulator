@@ -60,10 +60,10 @@ protected:
     uint8_t or8bit_with_flags(uint8_t val1, uint8_t val2);
     uint8_t xor8bit_with_flags(uint8_t val1, uint8_t val2);
     uint8_t swap_nibbles_with_flags(uint8_t val);
-    uint8_t rotate_left_with_flags(uint8_t val);
-    uint8_t rotate_left_carry_with_flags(uint8_t val);
-    uint8_t rotate_right_with_flags(uint8_t val);
-    uint8_t rotate_right_carry_with_flags(uint8_t val);
+    uint8_t rotate_left_with_flags(uint8_t val, bool calc_Z_flag);
+    uint8_t rotate_left_carry_with_flags(uint8_t val, bool calc_Z_flag);
+    uint8_t rotate_right_with_flags(uint8_t val, bool calc_Z_flag);
+    uint8_t rotate_right_carry_with_flags(uint8_t val, bool calc_Z_flag);
     uint8_t shift_left_with_flags(uint8_t val);
     uint8_t shift_right_leave_msb_with_flags(uint8_t val);
     uint8_t shift_right_with_flags(uint8_t val);
