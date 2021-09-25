@@ -41,7 +41,7 @@ enum cartridge_type_t {
 struct __attribute__((packed)) cardridge_header_t {
     cartridge_type_t type: 8; // 0x0147
     uint8_t ROM_size_shift; // 0x0148 - actual size is 32kB << ROM_size_shift
-    uint8_t RAM_size; // 0x0149 - here is not as straightforward as above so I have to hardcode it
+    uint8_t RAM_size_id; // 0x0149 - here is not as straightforward as above so I have to hardcode it
 };
 
 std::string get_cartridge_type_name(cartridge_type_t type);

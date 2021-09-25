@@ -9,8 +9,8 @@ ROMOnlyCart::~ROMOnlyCart() {
 
 }
 
-void ROMOnlyCart::load_from_file(std::ifstream &cart_file, int file_size) {
-    if (file_size != MEMORY_SIZE) {
+void ROMOnlyCart::load_from_file(std::ifstream &cart_file, unsigned file_size) {
+    if (file_size > MEMORY_SIZE) {
         throw EmulatorException("File has incorrect size for ROM-only cart. Expected %d, got %d", MEMORY_SIZE, file_size);
     }
     cart_file.seekg(0, std::ios::beg);

@@ -76,7 +76,7 @@ void GUI::display() {
     display_screen();
     display_timer();
     display_disassembly();
-    mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
+    // mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
     mem_edit.DrawWindow("IO", &(bus.io.data), 0x80);
     
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {

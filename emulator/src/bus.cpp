@@ -4,6 +4,7 @@
 #include "bus.h"
 #include "cartridge/cartridge_header.h"
 #include "cartridge/rom_only_cart.h"
+#include "cartridge/mbc1_cart.h"
 #include "emulator_exception.h"
 
 // TODO: Allow accessing all types of memory "directly" using bus?
@@ -51,7 +52,7 @@ uint8_t Bus::read(uint16_t address) {
 }
 
 void Bus::load_cartridge_from_file(std::string file_path) {
-    int file_size;
+    unsigned file_size;
     cardridge_header_t header;
 
     std::ifstream file(file_path, std::ios::binary);
@@ -70,15 +71,18 @@ void Bus::load_cartridge_from_file(std::string file_path) {
         case ROM_ONLY:
             cartridge = new ROMOnlyCart();
             break;
+        case MBC1:
+        case MBC1_RAM:
+        case MBC1_RAM_BATTERY:
+            cartridge = new MBC1Cart(header);
+            break;
         default:
             throw EmulatorException("Cartridge type %s not supported yet", get_cartridge_type_name(header.type).c_str());
             break;
     }
     cartridge->load_from_file(file, file_size);
-
-    // data = new uint8_t[file_size];
-    // cart_file.read((char *)(data), file_size);
     file.close();
+    is_cart_inserted = true;
 }
 
 // void Bus::insert_cartridge(Cartridge* cartridge) {
