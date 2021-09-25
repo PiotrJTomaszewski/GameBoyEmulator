@@ -46,7 +46,6 @@ uint8_t MockBus::read(uint16_t address) {
     return value;
 }
 
-
 void MockBus::force_write(uint16_t address, uint8_t value) {
     data[address] = value;
 }

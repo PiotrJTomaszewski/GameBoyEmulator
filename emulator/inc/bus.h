@@ -22,7 +22,8 @@ public:
     // void tmp_dump();
     // void tmp_load();
     IO io;
-private:
+
+protected:
     Cartridge *cartridge;
     bool is_cart_inserted;
     uint8_t tmp_mem[0xFFFF+1];

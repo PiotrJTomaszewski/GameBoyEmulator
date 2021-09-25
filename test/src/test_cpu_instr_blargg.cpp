@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include "doctest/doctest.h"
-#include "mock_bus.h"
+#include "wrappers/bus_wrapper.h"
 #include "wrappers/cpu_wrapper.h"
 
 const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_instrs/individual/";
@@ -12,9 +12,9 @@ const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_
     bool test_running = true; \
     unsigned long long total_cycles = 0; \
     unsigned cycles = 0; \
-    MockBus bus(true); \
+    BusWrapper bus(true); \
     CPUWrapper cpu(bus); \
-    bus.load_file(BLARGG_CPU_TESTS_DIR + file_name); \
+    bus.load_cartridge_from_file(BLARGG_CPU_TESTS_DIR + file_name); \
     bool timeout_occured = false; \
     const char *passed_str_pos; \
     while (test_running) { \
