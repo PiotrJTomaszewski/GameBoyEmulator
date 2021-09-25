@@ -91,3 +91,11 @@ uint8_t MBC1Cart::read(uint16_t address) {
     }
     return 0xFF; // TODO: What should be returned
 }
+
+uint8_t *MBC1Cart::get_raw_ROM_data() {
+    return ROM_data;
+}
+
+unsigned MBC1Cart::get_raw_ROM_size() {
+    return number_of_ROM_banks * SINGLE_ROM_BANK_SIZE;
+}

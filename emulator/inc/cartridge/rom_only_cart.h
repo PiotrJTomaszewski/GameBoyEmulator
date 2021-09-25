@@ -11,6 +11,8 @@ public:
     void load_from_file(std::ifstream &cart_file, unsigned file_size);
     void write(uint16_t address, uint8_t value);
     uint8_t read(uint16_t address);
+    uint8_t *get_raw_ROM_data();
+    unsigned get_raw_ROM_size();
 
 private:
     static const unsigned MEMORY_SIZE = 0x8000;

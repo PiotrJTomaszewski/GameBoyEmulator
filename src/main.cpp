@@ -6,12 +6,16 @@
 #include "gui.h"
 #include "cartridge/cartridge.h"
 #include "io/io.h"
+#include "ppu/ppu.h"
+#include "renderer.h"
 
 Bus bus;
 CPU cpu(bus);
-GUI gui(cpu, bus);
+PPU ppu(bus);
+Renderer renderer(bus.vram, ppu);
+GUI gui(cpu, bus, renderer);
 
-int main(int argc, char *argv[]) {
+int main() {
     // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));
     // TODO: Maybe use precalculated cycles in step
     const long step_duration_micros = 16666; // 60 Hz
@@ -25,7 +29,7 @@ int main(int argc, char *argv[]) {
             while (cycles_left_in_step > 0) {
                 cpu_cycles = cpu.exec_next_instr();
                 bus.io.timer.tick(cpu_cycles);
-                // ppu.tmp_tick(cpu_cycles);
+                ppu.tick(cpu_cycles);
                 cycles_left_in_step -= cpu_cycles;
             }
             cycles_left_in_step = cpu_cycles_in_one_step;
@@ -35,8 +39,8 @@ int main(int argc, char *argv[]) {
                 std::this_thread::sleep_for(std::chrono::microseconds(step_duration_micros) - duration);
             }
         }
-        // ppu.render_tile_data();
-        // ppu.render_screen();
+        renderer.render_tile_data();
+        renderer.render_screen();
         gui.display();
     }
 

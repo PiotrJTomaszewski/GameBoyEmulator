@@ -29,3 +29,11 @@ void ROMOnlyCart::write(uint16_t address, uint8_t value) {
 uint8_t ROMOnlyCart::read(uint16_t address) {
     return data[address];
 }
+
+uint8_t *ROMOnlyCart::get_raw_ROM_data() {
+    return data;
+}
+
+unsigned ROMOnlyCart::get_raw_ROM_size() {
+    return MEMORY_SIZE;
+}

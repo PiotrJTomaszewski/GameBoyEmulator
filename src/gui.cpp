@@ -5,7 +5,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus): cpu(cpu), bus(bus) {
+GUI::GUI(CPU &cpu, Bus &bus, Renderer &renderer): cpu(cpu), bus(bus), renderer(renderer) {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -26,7 +26,7 @@ GUI::GUI(CPU &cpu, Bus &bus): cpu(cpu), bus(bus) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    window = SDL_CreateWindow("GameBoy Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    window = SDL_CreateWindow("GameBoy Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1920, 1080, window_flags);
     gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -75,10 +75,13 @@ void GUI::display() {
     display_tile_data();
     display_screen();
     display_timer();
-    display_disassembly();
-    // mem_edit.DrawWindow("Memory", &(bus.tmp_mem), 0xFFFF+1);
+    // display_disassembly();
+    mem_edit.DrawWindow("VRAM", bus.vram.get_raw_data(), 0x2000);
     mem_edit.DrawWindow("IO", &(bus.io.data), 0x80);
-    
+    if (bus.get_is_cart_inserted()) {
+        mem_edit.DrawWindow("Cartridge", bus.cartridge->get_raw_ROM_data(), bus.cartridge->get_raw_ROM_size());
+    }
+
     if (ImGuiFileDialog::Instance()->Display("ChCartKey")) {
         if (ImGuiFileDialog::Instance()->IsOk()) {
             filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
@@ -251,17 +254,17 @@ void GUI::display_cpu() {
 }
 
 void GUI::display_tile_data() {
-    // ImGui::Begin("Tile Data", NULL);
-    // PPU::render_t &render = ppu.get_tile_data_render();
-    // ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
-    // ImGui::End();
+    ImGui::Begin("Tile Data", NULL);
+    Renderer::render_t &render = renderer.get_tile_data_render();
+    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    ImGui::End();
 }
 
 void GUI::display_screen() {
-    // ImGui::Begin("Screen", NULL);
-    // PPU::render_t &render = ppu.get_screen_render();
-    // ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
-    // ImGui::End();
+    ImGui::Begin("Screen", NULL);
+    Renderer::render_t &render = renderer.get_screen_render();
+    ImGui::Image(reinterpret_cast<ImTextureID>(render.texture), ImVec2(2 * render.width, 2 * render.height));
+    ImGui::End();
 }
 
 void GUI::display_timer() {

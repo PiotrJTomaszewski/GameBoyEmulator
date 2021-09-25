@@ -22,6 +22,10 @@ Bus::~Bus() {
 ReadWriteInterface *Bus::get_mem_access_handler(uint16_t address) {
     if (address <= 0x7FFF) { // Cartridge
         return cartridge;
+    } else if (address <= 0x9FFF) { // VRAM
+        return &vram;
+    } else if (address <= 0xBFFF) { // External RAM (on cartridge)
+        return cartridge;
     } else if ((address >= 0xFF00 && address <= 0xFF7F) || address == 0xFFFF) { // IO Registers
         return &io;
     } else {

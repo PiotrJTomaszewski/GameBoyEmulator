@@ -9,10 +9,15 @@ VideoRAM::~VideoRAM() {
 }
 
 void VideoRAM::write(uint16_t address, uint8_t value) {
-    data[address] = value;
+    // TODO: Implement access control
+    data[address - VRAM_MEMORY_START_ADDR] = value;
 }
 
 uint8_t VideoRAM::read(uint16_t address) {
-    return data[address];
+    // TODO: Implement access control
+    return data[address - VRAM_MEMORY_START_ADDR];
 }
-// TODO: Move VRAM to PPU
+
+uint8_t *VideoRAM::get_raw_data() {
+    return data;
+}

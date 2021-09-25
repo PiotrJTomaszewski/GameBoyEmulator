@@ -3,11 +3,11 @@
 #include <memory>
 #include "cartridge/cartridge.h"
 #include "io/io.h"
+#include "memory/video_ram.h"
 #include "read_write_interface.h"
 
 class Bus: public ReadWriteInterface {
     friend class GUI; // TODO: Remove?
-    friend class PPU;
 public:
     Bus();
     Bus(const Bus&) = delete;
@@ -22,6 +22,7 @@ public:
     // void tmp_dump();
     // void tmp_load();
     IO io;
+    VideoRAM vram;
 
 protected:
     Cartridge *cartridge;
