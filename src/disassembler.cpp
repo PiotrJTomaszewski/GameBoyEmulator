@@ -2,37 +2,15 @@
 #include <cstdio>
 #include "disassembler.h"
 
-Disassembler::Disassembler() {
-
-}
-
-Disassembler::~Disassembler() {
-
-}
-
-void Disassembler::disassemble_code(ReadWriteInterface &src, uint16_t start_addr, uint16_t end_addr) {
-    uint16_t address = start_addr;
-    while (address < end_addr) {
-        disassembled_t tmp_dis;
-        tmp_dis.address = address;
-        address += disassemble_instr(src, address, tmp_dis.text);
-        disassembled.push_back(tmp_dis);
-    }
-}
-
-std::vector<Disassembler::disassembled_t> &Disassembler::get_disassembled_code() {
-    return disassembled;
-}
-
-int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, char *buffer) {
+int Disassembler::disassemble_instr(instruction_t const& instruction, char* buffer) {
     int op;
     int instr_len = 1;
-    switch (src.read(mem_addr)) {
+    switch (instruction.fields.operation) {
         case 0x00: // NOP; 1 byte; 4 cycles NOP
             strcpy(buffer, "NOP");
             break;
         case 0x01: // LD BC,nn; 3 bytes; 12 cycles
-            sprintf(buffer, "LD BC,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD BC,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0x02: // LD (BC),A; 1 byte; 8 cycles
@@ -48,14 +26,14 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC B");
             break;
         case 0x06: // LD B,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD B,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD B,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x07: // RLCA; 1 byte; 4 cycles; Z,N,H,C flags
             strcpy(buffer, "RLCA");
             break;
         case 0x08: // LD (nn),SP; 3 bytes; 20 cycles
-            sprintf(buffer, "LD (0x%02X%02X),SP", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD (0x%02X%02X),SP", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0x09: // ADD HL,BC; 1 byte; 8 cycles; N,H,C flags
@@ -74,7 +52,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC C");
             break;
         case 0x0E: // LD C,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD C,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD C,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x0F: // RRCA; 1 byte; 4 cycles; Z,N,H,C flags
@@ -85,7 +63,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             instr_len = 2;
             break;
         case 0x11: // LD DE,nn; 3 bytes; 12 cycles
-            sprintf(buffer, "LD DE,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD DE,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0x12: // LD (DE),A; 1 byte; 8 cycles
@@ -101,14 +79,14 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC D");
             break;
         case 0x16: // LD D,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD D,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD D,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x17: // RLA; 1 byte; 4 cycles; Z,N,H,C flags
             strcpy(buffer, "RLA");
             break;
         case 0x18: // JR n; 2 bytes; 8 cycles
-            sprintf(buffer, "JR 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "JR 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x19: // ADD HL,DE; 1 byte; 8 cycles; N,H,C flags
@@ -127,18 +105,18 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC E");
             break;
         case 0x1E: // LD E,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD E,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD E,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x1F: // RRA; 1 byte; 4 cycles; Z,N,H,C flags
             strcpy(buffer, "RRA");
             break;
         case 0x20: // JR NZ,n; 2 bytes; 8 cycles
-            sprintf(buffer, "JR NZ,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "JR NZ,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x21: // LD HL,nn; 3 bytes; 12 cycles
-            sprintf(buffer, "LD HL,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD HL,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0x22: // LD (HL+),A; 1 byte; 8 cycles
@@ -154,13 +132,13 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC H");
             break;
         case 0x26: // LD H,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD H,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD H,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x27: // ???
             break;
         case 0x28: // JR Z,n; 2 bytes; 8 cycles
-            sprintf(buffer, "JR Z,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "JR Z,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x29: // ADD HL,HL; 1 byte; 8 cycles; N,H,C flags
@@ -179,18 +157,18 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC L");
             break;
         case 0x2E: // LD L,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD L,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD L,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x2F: // CPL; 1 byte; 4 cycles; N,H flags
             strcpy(buffer, "CPL");
             break;
         case 0x30: // JR NC,n; 2 bytes; 8 cycles
-            sprintf(buffer, "JR NC,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "JR NC,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x31: // LD SP,nn; 3 bytes; 12 cycles
-            sprintf(buffer, "LD SP,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD SP,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0x32: // LD (HL-),A; 1 byte; 8 cycles
@@ -206,14 +184,14 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC (HL)");
             break;
         case 0x36: // LD (HL),n; 2 bytes; 12 cycles
-            sprintf(buffer, "LD (HL),0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD (HL),0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x37: // STC; 1 byte; 4 cycles; N,H,C flag
             strcpy(buffer, "STC");
             break;
         case 0x38: // JR C,n; 2 bytes; 8 cycles
-            sprintf(buffer, "JR C,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "JR C,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x39: // ADD HL,SP; 1 byte; 8 cycles; N,H,C flags
@@ -232,7 +210,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "DEC A");
             break;
         case 0x3E: // LD A,n; 2 bytes; 8 cycles
-            sprintf(buffer, "LD A,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LD A,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0x3F: // CCF; 1 byte; 4 cycles; N, H, C flags
@@ -629,22 +607,22 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "POP BC");
             break;
         case 0xC2: // JP NZ,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "JP NZ,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "JP NZ,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xC3: // JP adr; 3 bytes; 12 cycles
-            sprintf(buffer, "JP 0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "JP 0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xC4: // CALL NZ,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "CALL NZ,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "CALL NZ,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xC5: // PUSH BC; 1 byte; 16 cycles
             strcpy(buffer, "PUSH BC");
             break;
         case 0xC6: // ADD A,n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "ADD A,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "ADD A,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xC7: // RST 00H; 1 byte; 32 cycles
@@ -657,11 +635,11 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "RET");
             break;
         case 0xCA: // JP Z,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "JP Z,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "JP Z,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xCB: // Extended instructions
-            op = src.read(mem_addr+1);
+            op = instruction.fields.param1;
             instr_len = 2;
             switch (op) {
                 case 0x00: // RLC B; 2 bytes; 8 cycles; Z,N,H,C flags
@@ -862,7 +840,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
                     int reg_id = op & 0b00000111;
                     char reg_lookup[] = {'B', 'C', 'D', 'E', 'H', 'L'};
                     switch((op & 0b11000000) >> 6) {
-                        case 0x01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
+                        case 0b01: // BIT b,r; 2 bytes; 8/16 cycles; Z,N,H flags
                             if (reg_id == 7) {
                                 sprintf(buffer, "BIT %d,A", bit_no);
                             } else if (reg_id == 6) {
@@ -871,7 +849,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
                                 sprintf(buffer, "BIT %d,%c", bit_no, reg_lookup[reg_id]);
                             }
                             break;
-                        case 0x10: // RES b,r; 2 bytes; 8/16 cycles
+                        case 0b10: // RES b,r; 2 bytes; 8/16 cycles
                             if (reg_id == 7) {
                                 sprintf(buffer, "RES %d,A", bit_no);
                             } else if (reg_id == 6) {
@@ -880,7 +858,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
                                 sprintf(buffer, "RES %d,%c", bit_no, reg_lookup[reg_id]);
                             }
                             break;
-                        case 0x11: // SET b,r; 2 bytes; 8/16 cycles
+                        case 0b11: // SET b,r; 2 bytes; 8/16 cycles
                             if (reg_id == 7) {
                                 sprintf(buffer, "SET %d,A", bit_no);
                             } else if (reg_id == 6) {
@@ -894,15 +872,15 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             }
             break;
         case 0xCC: // CALL Z,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "CALL Z,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "CALL Z,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xCD: // CALL adr; 3 bytes; 12 cycles
-            sprintf(buffer, "CALL 0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "CALL 0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xCE: // ADC A,n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "ADC A,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "ADC A,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xCF: // RST 08H; 1 byte; 32 cycles
@@ -915,20 +893,20 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "POP DE");
             break;
         case 0xD2: // JP NC,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "JP NC,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "JP NC,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xD3: // ???
             break;
         case 0xD4: // CALL NC,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "CALL NC,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "CALL NC,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xD5: // PUSH DE; 1 byte; 16 cycles
             strcpy(buffer, "PUSH DE");
             break;
         case 0xD6: // SUB n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "SUB 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "SUB 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xD7: // RST 10H; 1 byte; 32 cycles
@@ -941,13 +919,13 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "RETI");
             break;
         case 0xDA: // JP C,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "JP C,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "JP C,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xDB: // ???
             break;
         case 0xDC: // CALL C,adr; 3 bytes; 12 cycles
-            sprintf(buffer, "CALL C,0x%02X%02X", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "CALL C,0x%02X%02X", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xDD: // ???
@@ -958,7 +936,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "RST 0x0018");
             break;
         case 0xE0: // LD ($FF00 + n),A; 2 bytes; 12 cycles
-            sprintf(buffer, "LD (0xFF00 + 0x%02X),A", src.read(mem_addr+1));
+            sprintf(buffer, "LD (0xFF00 + 0x%02X),A", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xE1: // POP HL; 1 byte; 12 cycles
@@ -975,21 +953,21 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "PUSH HL");
             break;
         case 0xE6: // AND n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "AND 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "AND 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xE7: // RST 20H; 1 byte; 32 cycles
             strcpy(buffer, "RST 0x0020");
             break;
         case 0xE8: // ADD SP,n; 2 bytes; 16 cycles; Z,N,H,C flags
-            sprintf(buffer, "ADD SP,0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "ADD SP,0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xE9: // JP (HL); 1 byte; 4 cycles
             strcpy(buffer, "JP (HL)");
             break;
         case 0xEA: // LD (nn),A; 3 bytes; 16 cycles
-            sprintf(buffer, "LD (0x%02X%02X),A", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD (0x%02X%02X),A", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xEB: // ???
@@ -999,14 +977,14 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
         case 0xED: // ???
             break;
         case 0xEE: // XOR n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "XOR 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "XOR 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xEF: // RST 28H; 1 byte; 32 cycles
             strcpy(buffer, "RST 0x0028");
             break;
         case 0xF0: // LD A,($FF00 + n); 2 bytes; 12 cycles
-            sprintf(buffer, "LD A,(0xFF00 + 0x%02X)", src.read(mem_addr+1));
+            sprintf(buffer, "LD A,(0xFF00 + 0x%02X)", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xF1: // POP AF; 1 byte; 12 cycles
@@ -1024,21 +1002,21 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
             strcpy(buffer, "PUSH AF");
             break;
         case 0xF6: // OR n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "OR 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "OR 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xF7: // RST 30H; 1 byte; 32 cycles
             strcpy(buffer, "RST 0x0030");
             break;
         case 0xF8: // LDHL SP+n; 2 bytes; 12 cycles; Z,N,H,C flags
-            sprintf(buffer, "LDHL SP+0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "LDHL SP+0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xF9: // LD SP,HL; 1 byte; 8 cycles
             strcpy(buffer, "LD SP,HL");
             break;
         case 0xFA: // LD A,(nn); 3 bytes; 16 cycles
-            sprintf(buffer, "LD A,(0x%02X%02X)", src.read(mem_addr+2), src.read(mem_addr+1));
+            sprintf(buffer, "LD A,(0x%02X%02X)", instruction.fields.param2, instruction.fields.param1);
             instr_len = 3;
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
@@ -1049,7 +1027,7 @@ int Disassembler::disassemble_instr(ReadWriteInterface &src, uint16_t mem_addr, 
         case 0xFD: // ???
             break;
         case 0xFE: // CMP n; 2 bytes; 8 cycles; Z,N,H,C flags
-            sprintf(buffer, "CMP 0x%02X", src.read(mem_addr+1));
+            sprintf(buffer, "CMP 0x%02X", instruction.fields.param1);
             instr_len = 2;
             break;
         case 0xFF: // RST 38H; 1 byte; 32 cycles

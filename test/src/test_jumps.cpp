@@ -209,7 +209,7 @@ TEST_SUITE("JUMP_TESTS") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("JP nn") {
             instr.fields.operation = 0xC3;
@@ -231,7 +231,7 @@ TEST_SUITE("JUMP_TESTS") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("CALL nn") {
             instr.fields.operation = 0xCD;
@@ -291,7 +291,7 @@ TEST_SUITE("JUMP_TESTS") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("RST 00H") {
             instr.fields.operation = 0xC7;
@@ -346,7 +346,7 @@ TEST_SUITE("JUMP_TESTS") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("RET") {
             instr.fields.operation = 0xC9;
@@ -406,7 +406,7 @@ TEST_SUITE("JUMP_TESTS") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         mock_bus.io.interrupts.disable_IME_flag();
         CHECK_FALSE(mock_bus.io.interrupts.debug_get_IME_flag());

@@ -278,17 +278,17 @@ void GUI::display_timer() {
     ImGui::End();
 }
 
-void GUI::display_disassembly() {
-    ImGui::Begin("Disassembly", NULL);
-    ImGui::BeginChild("");
-    char buf[25];
+// void GUI::display_disassembly() {
+//     ImGui::Begin("Disassembly", NULL);
+//     ImGui::BeginChild("");
+//     char buf[25];
 
-    auto disassembled = diss.get_disassembled_code();
-    for (auto const &instr: disassembled) {
-        sprintf(buf, "%04X %s", instr.address, instr.text);
-        ImGui::Selectable(buf, cpu.get_regPC() == instr.address);
-    }
+//     auto disassembled = diss.get_disassembled_code();
+//     for (auto const &instr: disassembled) {
+//         sprintf(buf, "%04X %s", instr.address, instr.text);
+//         ImGui::Selectable(buf, cpu.get_regPC() == instr.address);
+//     }
 
-    ImGui::EndChild();
-    ImGui::End();
-}
+//     ImGui::EndChild();
+//     ImGui::End();
+// }

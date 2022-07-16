@@ -2,6 +2,8 @@
 #include "bus.h"
 #include "cpu/cpu.h"
 
+#define LOG_OPERATIONS 1
+
 // Macros for easier work with 16 bit registers
 #define regBC _regBC.value
 #define regB  _regBC.pair.higher
@@ -481,7 +483,7 @@ inline void CPU::run_after_stop() {
  * Fetches the instruction at PC register from the memory bus.
  * Affected registers: PC
  */
-CPU::instruction_t CPU::fetch_next_instruction() {
+instruction_t CPU::fetch_next_instruction() {
     instruction_t instruction;
     instruction.fields.operation = get_next_prog_byte();
     for (int i = 1; i < INSTRUCTION_LENGTH_LOOKUP[instruction.fields.operation]; ++i) {
@@ -495,6 +497,9 @@ CPU::instruction_t CPU::fetch_next_instruction() {
  * Returns the number of clock cycles this operation takes
  */
 int CPU::cpu_exec_op(instruction_t instruction) {
+    #if LOG_OPERATIONS == 1
+        logger.log_instruction(instruction);
+    #endif
     int operation_cycles = -1;
     switch (instruction.fields.operation) {
         case 0x00: // NOP; 1 byte; 4 cycles

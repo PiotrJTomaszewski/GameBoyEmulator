@@ -82,7 +82,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("0x15 & 0x53; A&B") {
             cpu.set_regA(0x15);
@@ -116,7 +116,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("0xD6 - 0xDE") {
             cpu.set_regA(0xD6);
@@ -136,7 +136,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
 
         SUBCASE("0x80") {
             cpu.clear_flag_C();
@@ -169,7 +169,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
         SUBCASE("0x70 - C=1") {
             cpu.set_flag_C();
             cpu.set_regA(0x70);
@@ -201,7 +201,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
         SUBCASE("0x01") {
             cpu.clear_flag_C();
             cpu.set_regA(0x01);
@@ -220,7 +220,7 @@ TEST_SUITE("ALU Tests") {
         MockBus mock_bus;
         ConsoleLogger logger;
         CPUWrapper cpu (mock_bus, logger);
-        CPUWrapper::instruction_t instr;
+        instruction_t instr;
         SUBCASE("0x80 - C=1") {
             cpu.set_flag_C();
             cpu.set_regA(0x80);
