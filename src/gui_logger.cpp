@@ -1,4 +1,5 @@
 #include "gui_logger.h"
+#include <fstream>
 #include "imgui.h"
 #include "disassembler.h"
 
@@ -15,10 +16,18 @@ void GuiLogger::log_instruction(instruction_t const& instruction) {
 
 void GuiLogger::display() const {
     ImGui::Begin("Log", NULL);
-    // ImGui::BeginChild("");
+    if (ImGui::Button("Save to file")) {
+        std::fstream fs;
+        fs.open("log.txt", std::ios_base::out);
+        for (auto const &msg: messages) {
+            fs << msg << std::endl;
+        }
+        fs.close();
+    }
+    ImGui::BeginChild("");
     for (auto const &msg: messages) {
         ImGui::Text(msg.c_str());
     }
-    // ImGui::EndChild();
+    ImGui::EndChild();
     ImGui::End();
 }
