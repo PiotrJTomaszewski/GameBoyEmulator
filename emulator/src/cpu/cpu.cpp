@@ -49,7 +49,7 @@ static const int INSTRUCTION_LENGTH_LOOKUP[256] = {
     /* 0xF */ 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 3, 1, 1, 1, 2, 1,
 };
 
-CPU::CPU(Bus &bus): bus{bus} {
+CPU::CPU(Bus &bus, Logger &logger): bus{bus}, logger{logger} {
     restart();
 }
 

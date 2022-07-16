@@ -2,6 +2,7 @@
 #include "cpu/regs.h"
 #include "wrappers/cpu_wrapper.h"
 #include "bus.h"
+#include "console_logger.h"
 #include "mock_bus.h"
 
 #define TEST_CALL \
@@ -52,7 +53,8 @@
 TEST_SUITE("JUMP_TESTS") {
     TEST_CASE("JR n") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("JR n - positive") {
             cpu.set_regPC(0x100);
@@ -73,7 +75,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("JR NZ,n") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("JR NZ,n - don't jump") {
             cpu.set_flag_Z();
@@ -105,7 +108,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("JR Z,n") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("JR Z,n - don't jump") {
             cpu.clear_flag_Z();
@@ -137,7 +141,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("JR NC,n") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("JR NC,n - don't jump") {
             cpu.set_flag_C();
@@ -169,7 +174,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("JR C,n") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("JR C,n - don't jump") {
             cpu.clear_flag_C();
@@ -201,7 +207,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("JP") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("JP nn") {
@@ -222,7 +229,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("CALL") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("CALL nn") {
@@ -281,7 +289,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("RST") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("RST 00H") {
@@ -335,7 +344,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("RET") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("RET") {
@@ -394,7 +404,8 @@ TEST_SUITE("JUMP_TESTS") {
 
     TEST_CASE("RETI") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         mock_bus.io.interrupts.disable_IME_flag();

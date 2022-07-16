@@ -1,6 +1,6 @@
 #include "wrappers/cpu_wrapper.h"
 
-CPUWrapper::CPUWrapper(Bus &bus): CPU(bus) {
+CPUWrapper::CPUWrapper(Bus &bus, Logger &logger): CPU(bus, logger) {
 
 }
 

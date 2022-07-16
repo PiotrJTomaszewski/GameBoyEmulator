@@ -1,6 +1,7 @@
 #pragma once
 #include "cpu/regs.h"
 #include "bus.h"
+#include "logger.h"
 
 class CPU {
 public:
@@ -14,7 +15,7 @@ public:
     };
 
 public:
-    CPU(Bus &bus);
+    CPU(Bus &bus, Logger &logger);
     ~CPU();
     uint8_t get_regA() {return regA;};
     uint8_t get_regB() {return _regBC.pair.higher;};
@@ -45,6 +46,7 @@ protected:
     reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP;
     flags_reg_t flags_reg;
     Bus &bus;
+    Logger &logger;
     bool is_halted, is_stopped;
     const long CLOCK_SPEED_HZ = 4194304;
     const uint16_t INTERRUPT_PC_LOOKUP[5] = {0x40, 0x48, 0x50, 0x58, 0x60};

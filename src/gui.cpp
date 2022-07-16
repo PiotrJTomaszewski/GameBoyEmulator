@@ -5,7 +5,7 @@
 #include "ImGuiFileDialog.h"
 #include "gui.h"
 
-GUI::GUI(CPU &cpu, Bus &bus, Renderer &renderer): cpu(cpu), bus(bus), renderer(renderer) {
+GUI::GUI(CPU &cpu, Bus &bus, Renderer &renderer, GuiLogger &gui_logger): cpu(cpu), bus(bus), renderer(renderer), gui_logger(gui_logger) {
     // From https://github.com/ocornut/imgui/blob/master/examples/example_sdl_opengl3/main.cpp
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -76,6 +76,7 @@ void GUI::display() {
     display_screen();
     display_timer();
     // display_disassembly();
+    gui_logger.display();
     mem_edit.DrawWindow("VRAM", bus.vram.get_raw_data(), 0x2000);
     mem_edit.DrawWindow("IO", &(bus.io.data), 0x80);
     if (bus.get_is_cart_inserted()) {

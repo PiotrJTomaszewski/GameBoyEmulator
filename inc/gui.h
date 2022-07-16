@@ -8,13 +8,14 @@
 
 #include "cpu/cpu.h"
 #include "bus.h"
+#include "gui_logger.h"
 #include "io/io.h"
 #include "disassembler.h"
 #include "renderer.h"
 
 class GUI {
 public:
-    GUI(CPU &cpu, Bus &bus, Renderer &renderer);
+    GUI(CPU &cpu, Bus &bus, Renderer &renderer, GuiLogger &logger);
     ~GUI();
     void display();
     bool get_should_close();
@@ -23,6 +24,7 @@ private:
     CPU &cpu;
     Bus &bus;
     Renderer &renderer;
+    GuiLogger &gui_logger;
     Disassembler diss;
     SDL_Window *window;
     SDL_GLContext gl_context;

@@ -5,6 +5,7 @@
 #include "doctest/doctest.h"
 #include "wrappers/bus_wrapper.h"
 #include "wrappers/cpu_wrapper.h"
+#include "console_logger.h"
 
 const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_instrs/individual/";
 
@@ -13,7 +14,8 @@ const std::string BLARGG_CPU_TESTS_DIR = "../../test/test_roms/gb-test-roms/cpu_
     unsigned long long total_cycles = 0; \
     unsigned cycles = 0; \
     BusWrapper bus(true); \
-    CPUWrapper cpu(bus); \
+    ConsoleLogger logger; \
+    CPUWrapper cpu(bus, logger); \
     bus.load_cartridge_from_file(BLARGG_CPU_TESTS_DIR + file_name); \
     bool timeout_occured = false; \
     const char *passed_str_pos; \

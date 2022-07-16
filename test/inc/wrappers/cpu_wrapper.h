@@ -6,7 +6,7 @@
 // CPU but with an option to manipulate it's internals
 class CPUWrapper: public CPU {
 public:
-    CPUWrapper(Bus &bus);
+    CPUWrapper(Bus &bus, Logger &logger);
     ~CPUWrapper();
     void exec_explicit_instr(instruction_t instr);
     void set_regA(uint8_t value);

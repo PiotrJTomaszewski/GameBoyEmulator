@@ -4,16 +4,18 @@
 #include "bus.h"
 #include "cpu/cpu.h"
 #include "gui.h"
+#include "gui_logger.h"
 #include "cartridge/cartridge.h"
 #include "io/io.h"
 #include "ppu/ppu.h"
 #include "renderer.h"
 
 Bus bus;
-CPU cpu(bus);
+GuiLogger logger;
+CPU cpu(bus, logger);
 PPU ppu(bus);
 Renderer renderer(bus.vram, ppu);
-GUI gui(cpu, bus, renderer);
+GUI gui(cpu, bus, renderer, logger);
 
 int main() {
     // bus.insert_cartridge(new Cartridge("/home/pjtom/Documents/GameBoyEmulatorCpp/roms/helloworld/dmg/picture.gb"));

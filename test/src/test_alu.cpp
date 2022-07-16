@@ -2,13 +2,15 @@
 #include "cpu/regs.h"
 #include "wrappers/cpu_wrapper.h"
 #include "bus.h"
+#include "console_logger.h"
 #include "mock_bus.h"
 
 
 TEST_SUITE("ALU Tests") {
     TEST_CASE("ADD") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
 
         SUBCASE("0xAF + 0x74; A+B") {
             cpu.set_regA(0xAF);
@@ -78,7 +80,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("AND") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("0x15 & 0x53; A&B") {
@@ -111,7 +114,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("SUB") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("0xD6 - 0xDE") {
@@ -130,7 +134,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("RLCA") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
 
         SUBCASE("0x80") {
@@ -162,7 +167,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("RLA") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
         SUBCASE("0x70 - C=1") {
             cpu.set_flag_C();
@@ -193,7 +199,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("RRCA") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
         SUBCASE("0x01") {
             cpu.clear_flag_C();
@@ -211,7 +218,8 @@ TEST_SUITE("ALU Tests") {
 
     TEST_CASE("RRA") {
         MockBus mock_bus;
-        CPUWrapper cpu(mock_bus);
+        ConsoleLogger logger;
+        CPUWrapper cpu (mock_bus, logger);
         CPUWrapper::instruction_t instr;
         SUBCASE("0x80 - C=1") {
             cpu.set_flag_C();
